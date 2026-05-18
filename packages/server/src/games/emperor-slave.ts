@@ -35,23 +35,38 @@ export const initState = (): ESState => ({
 });
 
 const resolveOutcome = (k: ESCard, s: ESCard): ESRound['outcome'] => {
-    if (s === 'slave' && k === 'king') { return 'slave_wins'; }
-    if (k === 'commoner' && s === 'slave') { return 'king_wins'; }
+    if (s === 'slave' && k === 'king') {
+        return 'slave_wins';
+    }
+    if (k === 'commoner' && s === 'slave') {
+        return 'king_wins';
+    }
+    if (k === 'king' && s === 'commoner') {
+        return 'king_wins';
+    }
     return 'continues';
 };
 
 export const handleMove = (room: Room, ws: WebSocket, data: unknown): boolean => {
     const state = room.gameState as ESState;
     const card = (data as { card: ESCard }).card;
-    const idx = room.players.findIndex(p => p.ws === ws);
-    if (idx === -1 || state.pending[idx] !== null) { return false; }
-    const hand = state.hands[idx];
-    if (hand[card] <= 0) { return false; }
+    const player = room.players.find(p => p.ws === ws);
+    if (!player) { return false; }
+    const roleIdx = player.role === 'king_side' ? 0 : 1;
+    if (state.pending[roleIdx] !== null) {
+        return false;
+    }
+    const hand = state.hands[roleIdx];
+    if (hand[card] <= 0) {
+        return false;
+    }
 
     hand[card]--;
-    state.pending[idx] = card;
+    state.pending[roleIdx] = card;
 
-    if (state.pending[0] === null || state.pending[1] === null) { return false; }
+    if (state.pending[0] === null || state.pending[1] === null) {
+        return false;
+    }
 
     const [kCard, sCard] = state.pending as [ESCard, ESCard];
     state.pending = [null, null];
@@ -62,20 +77,26 @@ export const handleMove = (room: Room, ws: WebSocket, data: unknown): boolean =>
     const roundWinner: ESState['winner'] = outcome === 'slave_wins' ? 'slave_side' : (gameOver ? 'king_side' : null);
 
     state.history.push({ round: state.round, kingSideCard: kCard, slaveSideCard: sCard, outcome });
-    if (gameOver) { state.winner = roundWinner ?? 'king_side'; } else { state.round++; }
+    if (gameOver) {
+        state.winner = roundWinner ?? 'king_side';
+    }
+    else {
+        state.round++;
+    }
 
-    room.players.forEach((p, i) => {
+    room.players.forEach((p) => {
+        const pRoleIdx = p.role === 'king_side' ? 0 : 1;
         send(p.ws, {
             type: 'round_result',
             round: state.history[state.history.length - 1].round,
-            yourCard: i === 0 ? kCard : sCard,
-            opponentCard: i === 0 ? sCard : kCard,
+            yourCard: pRoleIdx === 0 ? kCard : sCard,
+            opponentCard: pRoleIdx === 0 ? sCard : kCard,
             outcome,
             gameOver,
             winner: gameOver ? state.winner : undefined,
         });
     });
-    room.spectators.forEach(s => {
+    room.spectators.forEach((s) => {
         send(s, { type: 'spectate_update', state: getSpectateState(room) });
     });
     return gameOver;
@@ -88,6 +109,8 @@ export const getSpectateState = (room: Room): unknown => {
 
 export const getResult = (room: Room): number | 'draw' => {
     const st = room.gameState as ESState;
-    if (!st.winner) { return 'draw'; }
+    if (!st.winner) {
+        return 'draw';
+    }
     return room.players.findIndex(p => p.role === st.winner);
 };

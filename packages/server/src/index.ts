@@ -1,10 +1,11 @@
+import 'dotenv/config';
 import { readFile } from 'node:fs/promises';
 import type { Server } from 'node:http';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import type { GameType } from './types.js';
 import { getRoomList, handleCreate, handleCreateAiRoom, handleDisconnect, handleJoin, handleMove, handleRematch, handleSpectate } from './rooms.js';
 
@@ -36,14 +37,22 @@ const wss = new WebSocketServer({ noServer: true });
     }
 });
 
+const broadcastOnlineCount = () => {
+    const msg = JSON.stringify({ type: 'online_count', count: wss.clients.size });
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) { client.send(msg); } // eslint-disable-line @stylistic/max-statements-per-line
+    });
+};
+
 wss.on('connection', (ws) => {
+    broadcastOnlineCount();
     ws.on('message', (data) => {
-        const msg = JSON.parse(data.toString()) as { type: string; nickname?: string; roomId?: string; game?: GameType };
+        const msg = JSON.parse(data.toString()) as { type: string; nickname?: string; roomId?: string; game?: GameType; mode?: string };
         if (msg.type === 'create_room' && msg.nickname && msg.game) {
             handleCreate(ws, msg.nickname, msg.game);
         }
         else if (msg.type === 'create_ai_room' && msg.nickname && msg.game) {
-            handleCreateAiRoom(ws, msg.nickname, msg.game);
+            handleCreateAiRoom(ws, msg.nickname, msg.game, msg.mode);
         }
         else if (msg.type === 'join_room' && msg.roomId && msg.nickname) {
             handleJoin(ws, msg.roomId, msg.nickname);
@@ -60,5 +69,6 @@ wss.on('connection', (ws) => {
     });
     ws.on('close', () => {
         handleDisconnect(ws);
+        broadcastOnlineCount();
     });
 });

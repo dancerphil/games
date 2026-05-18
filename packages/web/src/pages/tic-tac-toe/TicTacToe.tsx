@@ -1,14 +1,18 @@
 import { useCallback, useState } from 'react';
-import { Button, Group, Stack, Text } from '@mantine/core';
-import { RoomLobby } from '../../components/RoomLobby';
+import { Group, Stack, Text } from '@mantine/core';
+import { GameConnecting } from '../../components/GameConnecting';
+import { RematchSection } from '../../components/RematchSection';
+import { RoomWaiting } from '../../components/RoomWaiting';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { InitialAction } from '../../hooks/useGameRoom';
+import { useNickname } from '../../hooks/useNickname';
 import { TicTacToeBoard } from './TicTacToeBoard';
 import type { Board, Player, TttGameMessage } from './wsTypes';
 
 const EMPTY_BOARD: Board = Array(9).fill(null) as Board;
 
-export const PvpGame = ({ nickname, initialAction }: { nickname: string; initialAction?: InitialAction }) => {
+export const TicTacToe = ({ initialAction }: { initialAction?: InitialAction }) => {
+    const [nickname] = useNickname();
     const [board, setBoard] = useState<Board>([...EMPTY_BOARD]);
     const [currentTurn, setCurrentTurn] = useState<Player>('X');
     const [winner, setWinner] = useState<Player | null | undefined>(undefined);
@@ -21,7 +25,11 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
 
     const handleGameMessage = useCallback((msg: TttGameMessage) => {
         if (msg.type === 'move') {
-            setBoard((prev) => { const next = [...prev] as Board; next[msg.position] = msg.player; return next; });
+            setBoard((prev) => {
+                const next = [...prev] as Board;
+                next[msg.position] = msg.player;
+                return next;
+            });
             setCurrentTurn(msg.player === 'X' ? 'O' : 'X');
         }
         else if (msg.type === 'game_over') {
@@ -34,7 +42,7 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const { connected, phase, roomId, role, opponentNickname, spectateNicknames, error, clearError, send, createRoom, joinRoom, spectateRoom, rematch, setGameEnded, rematchRequests, totalScores, myIndex } =
+    const { connected, phase, roomId, role, opponentNickname, spectateNicknames, send, rematch, setGameEnded, rematchRequests, totalScores, myIndex } =
         useGameRoom<TttGameMessage>({ game: 'tic-tac-toe', nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
 
     const handleCellClick = useCallback((index: number) => {
@@ -42,21 +50,8 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
         send({ type: 'move', position: index });
     }, [phase, currentTurn, role, send]);
 
-    if (phase === 'lobby' || phase === 'waiting') {
-        return (
-            <Stack align="center" gap="md">
-                <RoomLobby
-                    connected={connected}
-                    isWaiting={phase === 'waiting'}
-                    roomId={roomId}
-                    error={error}
-                    onCreateRoom={createRoom}
-                    onJoinRoom={joinRoom}
-                    onSpectate={spectateRoom}
-                />
-            </Stack>
-        );
-    }
+    if (!connected || phase === 'lobby') { return <GameConnecting />; }
+    if (phase === 'waiting') { return <RoomWaiting roomId={roomId} />; }
 
     const isSpectating = phase === 'spectating';
     const [p1Name, p2Name] = spectateNicknames;
@@ -78,7 +73,6 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
 
     return (
         <Stack align="center" gap="lg">
-            {error && <Text c="red" size="sm" onClick={clearError}>{error}</Text>}
             <Text size="lg" fw={500}>{statusText}</Text>
             {hasScores && (
                 <Group gap="xs">
@@ -96,12 +90,7 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
                 onCellClick={handleCellClick}
                 disabled={phase === 'ended' || isSpectating || currentTurn !== role}
             />
-            {phase === 'ended' && (
-                <Stack align="center" gap="xs">
-                    {rematchHint && <Text size="sm" c="dimmed">{rematchHint}</Text>}
-                    <Button onClick={rematch} variant="light">再来一局</Button>
-                </Stack>
-            )}
+            {phase === 'ended' && <RematchSection hint={rematchHint} onRematch={rematch} />}
         </Stack>
     );
 };

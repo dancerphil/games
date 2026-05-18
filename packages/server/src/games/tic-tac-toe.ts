@@ -36,20 +36,20 @@ export const handleMove = (room: Room, ws: WebSocket, data: unknown): boolean =>
     const state = room.gameState as TttState;
     const position = (data as { position: number }).position;
     const mover = room.players.find(p => p.ws === ws);
-    if (!mover || mover.role !== state.currentTurn) { return false; }
-    if (state.board[position] !== null) { return false; }
+    if (!mover || mover.role !== state.currentTurn) { return false; } // eslint-disable-line @stylistic/max-statements-per-line
+    if (state.board[position] !== null) { return false; } // eslint-disable-line @stylistic/max-statements-per-line
 
     state.board[position] = state.currentTurn;
     const moveMsg = { type: 'move', position, player: state.currentTurn };
-    room.players.forEach(p => { send(p.ws, moveMsg); });
-    room.spectators.forEach(s => { send(s, moveMsg); });
+    room.players.forEach((p) => { send(p.ws, moveMsg); }); // eslint-disable-line @stylistic/max-statements-per-line
+    room.spectators.forEach((s) => { send(s, moveMsg); }); // eslint-disable-line @stylistic/max-statements-per-line
 
     const winner = getWinner(state.board);
     const isDraw = !winner && state.board.every(c => c !== null);
     if (winner ?? isDraw) {
         const overMsg = { type: 'game_over', winner: winner ?? null };
-        room.players.forEach(p => { send(p.ws, overMsg); });
-        room.spectators.forEach(s => { send(s, overMsg); });
+        room.players.forEach((p) => { send(p.ws, overMsg); });
+        room.spectators.forEach((s) => { send(s, overMsg); });
         return true;
     }
     state.currentTurn = state.currentTurn === 'X' ? 'O' : 'X';

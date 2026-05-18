@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Badge, Button, Group, Stack, Table, Text } from '@mantine/core';
-import { RoomLobby } from '../../components/RoomLobby';
+import { GameConnecting } from '../../components/GameConnecting';
+import { RematchSection } from '../../components/RematchSection';
+import { RoomWaiting } from '../../components/RoomWaiting';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { InitialAction } from '../../hooks/useGameRoom';
+import { useNickname } from '../../hooks/useNickname';
 
 type ESCard = 'king' | 'commoner' | 'slave';
 type Outcome = 'slave_wins' | 'king_wins' | 'continues';
@@ -30,7 +33,8 @@ interface ESGameMessage {
 const CARD_LABELS: Record<ESCard, string> = { king: '国王', commoner: '平民', slave: '奴隶' };
 const OUTCOME_LABELS: Record<Outcome, string> = { slave_wins: '奴隶方获胜', king_wins: '国王方获胜', continues: '继续' };
 
-export const PvpGame = ({ nickname, initialAction }: { nickname: string; initialAction?: InitialAction }) => {
+export const EmperorSlave = ({ initialAction }: { initialAction?: InitialAction }) => {
+    const [nickname] = useNickname();
     const [hand, setHand] = useState<Record<ESCard, number>>({ king: 0, commoner: 0, slave: 0 });
     const [submitted, setSubmitted] = useState(false);
     const [history, setHistory] = useState<RoundResult[]>([]);
@@ -54,7 +58,7 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
         if (msg.gameOver) { setGameEnded(); }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const { connected, phase, roomId, role, opponentNickname, spectateNicknames, error, clearError, send, createRoom, joinRoom, spectateRoom, rematch, setGameEnded, rematchRequests, totalScores, myIndex } =
+    const { connected, phase, roomId, role, opponentNickname, spectateNicknames, send, rematch, setGameEnded, rematchRequests, totalScores, myIndex } =
         useGameRoom<ESGameMessage>({ game: 'emperor-slave', nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
 
     useEffect(() => {
@@ -70,21 +74,8 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
         send({ type: 'move', card });
     }, [submitted, hand, send]);
 
-    if (phase === 'lobby' || phase === 'waiting') {
-        return (
-            <Stack align="center" gap="md">
-                <RoomLobby
-                    connected={connected}
-                    isWaiting={phase === 'waiting'}
-                    roomId={roomId}
-                    error={error}
-                    onCreateRoom={createRoom}
-                    onJoinRoom={joinRoom}
-                    onSpectate={spectateRoom}
-                />
-            </Stack>
-        );
-    }
+    if (!connected || phase === 'lobby') { return <GameConnecting />; }
+    if (phase === 'waiting') { return <RoomWaiting roomId={roomId} />; }
 
     const isSpectating = phase === 'spectating';
     const lastRound = history[history.length - 1];
@@ -118,7 +109,6 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
 
     return (
         <Stack gap="md">
-            {error && <Text c="red" size="sm" onClick={clearError}>{error}</Text>}
             <Text fw={500}>第 {roundNum} 轮 · {roleLabel}</Text>
             <Text size="sm">对手：{opponentNickname}</Text>
             {hasScores && (
@@ -155,12 +145,7 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
                     {lastRound.winner === role ? '你赢了！' : `${opponentNickname} 赢了！`}
                 </Text>
             )}
-            {phase === 'ended' && (
-                <Stack align="center" gap="xs">
-                    {rematchHint && <Text size="sm" c="dimmed">{rematchHint}</Text>}
-                    <Button onClick={rematch} variant="light">再来一局</Button>
-                </Stack>
-            )}
+            {phase === 'ended' && <RematchSection hint={rematchHint} onRematch={rematch} />}
         </Stack>
     );
 };

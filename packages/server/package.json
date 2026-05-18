@@ -11,14 +11,16 @@
         "lint-type": "tsc --noEmit"
     },
     "dependencies": {
-        "@hono/node-server": "^1.0.0",
+        "@ai-sdk/deepseek": "^2.0.35",
+        "@hono/node-server": "^2.0.2",
+        "ai": "^6.0.185",
+        "dotenv": "^17.4.2",
         "hono": "^4.0.0",
         "ws": "^8.18.0"
     },
     "devDependencies": {
         "@types/node": "^25.7.0",
         "@types/ws": "^8.5.14",
-        "tsx": "^4.0.0",
-        "typescript": "^6.0.3"
+        "tsx": "^4.0.0"
     }
 }

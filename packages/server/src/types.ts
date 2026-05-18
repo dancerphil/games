@@ -1,6 +1,6 @@
 import type { WebSocket } from 'ws';
 
-export type GameType = 'tic-tac-toe' | 'emperor-slave' | 'nine';
+export type GameType = 'tic-tac-toe' | 'emperor-slave' | 'nine' | 'mine-texas' | 'guess';
 
 export interface PlayerState {
     ws: WebSocket;

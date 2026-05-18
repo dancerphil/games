@@ -34,13 +34,13 @@ export const handleMove = (room: Room, ws: WebSocket, data: unknown): boolean =>
     const state = room.gameState as NineState;
     const card = (data as { card: number }).card;
     const idx = room.players.findIndex(p => p.ws === ws);
-    if (idx === -1 || state.pending[idx] !== null) { return false; }
-    if (!state.hands[idx].includes(card)) { return false; }
+    if (idx === -1 || state.pending[idx] !== null) { return false; } // eslint-disable-line @stylistic/max-statements-per-line
+    if (!state.hands[idx].includes(card)) { return false; } // eslint-disable-line @stylistic/max-statements-per-line
 
     state.hands[idx] = state.hands[idx].filter(c => c !== card);
     state.pending[idx] = card;
 
-    if (state.pending[0] === null || state.pending[1] === null) { return false; }
+    if (state.pending[0] === null || state.pending[1] === null) { return false; } // eslint-disable-line @stylistic/max-statements-per-line
 
     const [c1, c2] = state.pending as [number, number];
     state.pending = [null, null];
@@ -56,10 +56,17 @@ export const handleMove = (room: Room, ws: WebSocket, data: unknown): boolean =>
 
     const gameOver = state.round === 9;
     if (gameOver) {
-        if (state.scores[0] > state.scores[1]) { state.winner = 'player1'; }
-        else if (state.scores[1] > state.scores[0]) { state.winner = 'player2'; }
-        else { state.winner = 'draw'; }
-    } else {
+        if (state.scores[0] > state.scores[1]) {
+            state.winner = 'player1';
+        }
+        else if (state.scores[1] > state.scores[0]) {
+            state.winner = 'player2';
+        }
+        else {
+            state.winner = 'draw';
+        }
+    }
+    else {
         state.round++;
     }
 
@@ -80,7 +87,7 @@ export const handleMove = (room: Room, ws: WebSocket, data: unknown): boolean =>
             winner: myWinner,
         });
     });
-    room.spectators.forEach(s => {
+    room.spectators.forEach((s) => {
         send(s, { type: 'spectate_update', state: getSpectateState(room) });
     });
     return gameOver;
@@ -93,6 +100,6 @@ export const getSpectateState = (room: Room): unknown => {
 
 export const getResult = (room: Room): number | 'draw' => {
     const st = room.gameState as NineState;
-    if (st.winner === null || st.winner === 'draw') { return 'draw'; }
+    if (st.winner === null || st.winner === 'draw') { return 'draw'; } // eslint-disable-line @stylistic/max-statements-per-line
     return st.winner === 'player1' ? 0 : 1;
 };

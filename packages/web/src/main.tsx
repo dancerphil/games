@@ -1,6 +1,8 @@
 import '@mantine/core/styles.css';
-import { MantineProvider } from '@mantine/core';
+import '@mantine/notifications/styles.css';
 import { StrictMode } from 'react';
+import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 
@@ -12,6 +14,7 @@ if (!root) {
 createRoot(root).render(
     <StrictMode>
         <MantineProvider>
+            <Notifications />
             <App />
         </MantineProvider>
     </StrictMode>,

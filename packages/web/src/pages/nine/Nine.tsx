@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Badge, Button, Group, Stack, Text } from '@mantine/core';
-import { RoomLobby } from '../../components/RoomLobby';
+import { GameConnecting } from '../../components/GameConnecting';
+import { RematchSection } from '../../components/RematchSection';
+import { RoomWaiting } from '../../components/RoomWaiting';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { InitialAction } from '../../hooks/useGameRoom';
+import { useNickname } from '../../hooks/useNickname';
 
 interface NineRoundResult {
     round: number;
@@ -28,7 +31,8 @@ interface NineGameMessage {
     state?: { round: number; hands: [number[], number[]]; scores: [number, number]; history: { round: number; p1Card: number; p2Card: number; p1Gained: number; p2Gained: number }[]; winner: string | null };
 }
 
-export const PvpGame = ({ nickname, initialAction }: { nickname: string; initialAction?: InitialAction }) => {
+export const Nine = ({ initialAction }: { initialAction?: InitialAction }) => {
+    const [nickname] = useNickname();
     const [hand, setHand] = useState<number[]>([]);
     const [submitted, setSubmitted] = useState(false);
     const [scores, setScores] = useState<[number, number]>([0, 0]);
@@ -55,7 +59,7 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
         if (msg.gameOver) { setGameEnded(); }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const { connected, phase, roomId, opponentNickname, spectateNicknames, error, clearError, send, createRoom, joinRoom, spectateRoom, rematch, setGameEnded, rematchRequests, totalScores, myIndex } =
+    const { connected, phase, roomId, opponentNickname, spectateNicknames, send, rematch, setGameEnded, rematchRequests, totalScores, myIndex } =
         useGameRoom<NineGameMessage>({ game: 'nine', nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
 
     useEffect(() => {
@@ -69,21 +73,8 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
         send({ type: 'move', card });
     }, [submitted, send]);
 
-    if (phase === 'lobby' || phase === 'waiting') {
-        return (
-            <Stack align="center" gap="md">
-                <RoomLobby
-                    connected={connected}
-                    isWaiting={phase === 'waiting'}
-                    roomId={roomId}
-                    error={error}
-                    onCreateRoom={createRoom}
-                    onJoinRoom={joinRoom}
-                    onSpectate={spectateRoom}
-                />
-            </Stack>
-        );
-    }
+    if (!connected || phase === 'lobby') { return <GameConnecting />; }
+    if (phase === 'waiting') { return <RoomWaiting roomId={roomId} />; }
 
     const isSpectating = phase === 'spectating';
     const lastRound = history[history.length - 1];
@@ -117,7 +108,6 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
 
     return (
         <Stack gap="md">
-            {error && <Text c="red" size="sm" onClick={clearError}>{error}</Text>}
             <Text fw={500}>第 {roundNum} 轮 · 你：{scores[0]} | 对手：{scores[1]}</Text>
             <Text size="sm">对手：{opponentNickname}</Text>
             {hasScores && (
@@ -152,12 +142,7 @@ export const PvpGame = ({ nickname, initialAction }: { nickname: string; initial
                     {lastRound.winner === 'you' ? '你赢了！' : lastRound.winner === 'draw' ? '平局！' : `${opponentNickname} 赢了！`}
                 </Text>
             )}
-            {phase === 'ended' && (
-                <Stack align="center" gap="xs">
-                    {rematchHint && <Text size="sm" c="dimmed">{rematchHint}</Text>}
-                    <Button onClick={rematch} variant="light">再来一局</Button>
-                </Stack>
-            )}
+            {phase === 'ended' && <RematchSection hint={rematchHint} onRematch={rematch} />}
         </Stack>
     );
 };
