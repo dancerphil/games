@@ -1,0 +1,28 @@
+{
+    "name": "@games/web",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc -b && vite build",
+        "preview": "vite preview",
+        "serve": "vite preview --port 8789 --strictPort",
+        "lint-type": "tsc -b --noEmit"
+    },
+    "dependencies": {
+        "@mantine/core": "^9.2.0",
+        "@mantine/hooks": "^9.2.0",
+        "@tabler/icons-react": "^3.44.0",
+        "react": "^19.2.6",
+        "react-dom": "^19.2.6",
+        "react-router": "^7.0.0"
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.0",
+        "@vitejs/plugin-react": "^4.0.0",
+        "typescript": "^6.0.3",
+        "vite": "^6.0.0"
+    }
+}
