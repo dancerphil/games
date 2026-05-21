@@ -2,13 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { notifications } from '@mantine/notifications';
 import { useAppStore } from '../store';
 
-export type GameType = 'tic-tac-toe' | 'emperor-slave' | 'nine' | 'mine-texas' | 'guess';
+export type GameType = 'tic-tac-toe' | 'emperor-slave' | 'nine' | 'mine-texas' | 'stance' | 'boss-blast' | 'boss-tornado' | 'boss-thunder' | 'boss-spacetime' | 'boss-tidal' | 'boss-siege';
 export type Phase = 'lobby' | 'waiting' | 'playing' | 'spectating' | 'ended';
 
 export interface InitialAction {
     type: 'create' | 'create_ai' | 'join' | 'spectate';
     roomId?: string;
-    mode?: string;
 }
 
 interface Options<TGameMsg> {
@@ -101,16 +100,13 @@ export const useGameRoom = <TGameMsg>({ game, nickname, onGameMessage, onReset, 
         if (!connected || sentRef.current || !initialAction || !nickname) { return; }
         sentRef.current = true;
         if (initialAction.type === 'create') { send({ type: 'create_room', nickname, game }); } // eslint-disable-line @stylistic/max-statements-per-line
-        else if (initialAction.type === 'create_ai') { send({ type: 'create_ai_room', nickname, game, mode: initialAction.mode }); } // eslint-disable-line @stylistic/max-statements-per-line
+        else if (initialAction.type === 'create_ai') { send({ type: 'create_ai_room', nickname, game }); } // eslint-disable-line @stylistic/max-statements-per-line
         else if (initialAction.type === 'join' && initialAction.roomId) { send({ type: 'join_room', roomId: initialAction.roomId, nickname }); } // eslint-disable-line @stylistic/max-statements-per-line
         else if (initialAction.type === 'spectate' && initialAction.roomId) { send({ type: 'spectate_room', roomId: initialAction.roomId }); } // eslint-disable-line @stylistic/max-statements-per-line
     }, [connected, nickname]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const createRoom = useCallback(() => { send({ type: 'create_room', nickname, game }); }, [send, nickname, game]); // eslint-disable-line @stylistic/max-statements-per-line
-    const joinRoom = useCallback((id: string) => { send({ type: 'join_room', roomId: id, nickname }); }, [send, nickname]); // eslint-disable-line @stylistic/max-statements-per-line
-    const spectateRoom = useCallback((id: string) => { send({ type: 'spectate_room', roomId: id }); }, [send]); // eslint-disable-line @stylistic/max-statements-per-line
     const rematch = useCallback(() => { send({ type: 'rematch' }); }, [send]); // eslint-disable-line @stylistic/max-statements-per-line
     const setGameEnded = useCallback(() => { setPhase('ended'); }, []); // eslint-disable-line @stylistic/max-statements-per-line
 
-    return { connected, phase, roomId, role, opponentNickname, spectateNicknames, send, createRoom, joinRoom, spectateRoom, rematch, setGameEnded, rematchRequests, totalScores, myIndex };
+    return { connected, phase, roomId, role, opponentNickname, spectateNicknames, send, rematch, setGameEnded, rematchRequests, totalScores, myIndex };
 };

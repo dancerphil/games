@@ -6,20 +6,21 @@
     "scripts": {
         "lint": "eslint .",
         "lint-type": "pnpm --filter './packages/*' --bail run lint-type",
-        "build": "pnpm --filter './packages/*' --bail run build",
+        "test": "pnpm --filter @games/shared test",
+        "build": "pnpm --filter '@games/web' run build",
         "dev": "concurrently -n web,server -c blue,green \"pnpm --filter @games/web dev\" \"pnpm --filter @games/server dev\"",
         "serve": "pnpm build && pnpm --filter @games/server serve",
         "lint-all": "pnpm lint && pnpm lint-type",
         "prepare": "husky"
     },
     "devDependencies": {
-        "@eslint-react/eslint-plugin": "^5.7.6",
+        "@eslint-react/eslint-plugin": "^5.8.3",
         "@hero-u/eslint-config": "^1.0.3",
-        "@types/node": "^25.7.0",
-        "eslint": "^10.3.0",
+        "@types/node": "^25.9.1",
+        "concurrently": "^9.2.1",
+        "eslint": "^10.4.0",
         "eslint-plugin-react-hooks": "^7.1.1",
         "globals": "^17.6.0",
-        "concurrently": "^9.0.0",
         "husky": "^9.1.7",
         "typescript": "^6.0.3"
     },

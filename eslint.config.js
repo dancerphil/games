@@ -4,6 +4,7 @@ export default [
     ...reactConfig,
     {
         rules: {
+            'curly': 'off',
             'max-lines': 'off',
         },
     },

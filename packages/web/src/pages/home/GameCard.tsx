@@ -16,7 +16,7 @@ export const GameCard = ({ game, rooms }: GameCardProps) => {
             <Stack gap="xs">
                 <Group gap="xs" align="baseline">
                     <Text fw={700}>{game.label}</Text>
-                    <Tooltip label={game.tooltip} multiline maw={240} events={{ hover: true, touch: true }}>
+                    <Tooltip label={game.tooltip} multiline maw={240} events={{ hover: true, focus: true, touch: true }}>
                         <Text size="xs" c="dimmed" style={{ cursor: 'pointer', textDecoration: 'underline dotted' }}>规则</Text>
                     </Tooltip>
                 </Group>
@@ -24,10 +24,10 @@ export const GameCard = ({ game, rooms }: GameCardProps) => {
                     {game.aiModes
                         ? game.aiModes.map(ai => (
                             <Button
-                                key={ai.mode}
+                                key={ai.label}
                                 size="sm"
                                 disabled={!nickname}
-                                onClick={() => { enterGame(game.key, { type: 'create_ai', mode: ai.mode }); }}
+                                onClick={() => { enterGame(game.key, { type: 'create_ai' }); }}
                             >
                                 {ai.label}
                             </Button>
@@ -42,6 +42,17 @@ export const GameCard = ({ game, rooms }: GameCardProps) => {
                             </Button>
                         )
                     }
+                    {game.linked?.map(link => (
+                        <Button
+                            key={link.key}
+                            size="sm"
+                            variant="light"
+                            disabled={!nickname}
+                            onClick={() => { enterGame(link.key, { type: 'create_ai' }); }}
+                        >
+                            {link.label}
+                        </Button>
+                    ))}
                     <Button
                         size="sm"
                         variant="outline"

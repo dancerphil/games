@@ -1,13 +1,10 @@
 {
     "compilerOptions": {
         "target": "esnext",
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
+        "module": "esnext",
+        "moduleResolution": "bundler",
         "strict": true,
         "skipLibCheck": true,
-        "esModuleInterop": true,
-        "types": ["node"],
-        "allowImportingTsExtensions": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "noEmit": true

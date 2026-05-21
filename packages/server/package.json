@@ -5,22 +5,22 @@
     "type": "module",
     "scripts": {
         "dev": "tsx watch src/index.ts",
-        "build": "tsc",
-        "start": "node dist/index.js",
-        "serve": "node dist/index.js",
+        "start": "tsx src/index.ts",
+        "serve": "tsx src/index.ts",
         "lint-type": "tsc --noEmit"
     },
     "dependencies": {
         "@ai-sdk/deepseek": "^2.0.35",
-        "@hono/node-server": "^2.0.2",
-        "ai": "^6.0.185",
+        "@games/shared": "workspace:*",
+        "@hono/node-server": "^2.0.3",
+        "ai": "^6.0.188",
         "dotenv": "^17.4.2",
-        "hono": "^4.0.0",
-        "ws": "^8.18.0"
+        "hono": "^4.12.21",
+        "ws": "^8.20.1"
     },
     "devDependencies": {
-        "@types/node": "^25.7.0",
-        "@types/ws": "^8.5.14",
-        "tsx": "^4.0.0"
+        "@types/node": "^25.9.1",
+        "@types/ws": "^8.18.1",
+        "tsx": "^4.22.3"
     }
 }

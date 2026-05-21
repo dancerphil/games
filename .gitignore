@@ -2,5 +2,6 @@
 /coverage
 /packages/*/node_modules
 /packages/*/dist
+/packages/*/*.tsbuildinfo
 /packages/server/public
 .env

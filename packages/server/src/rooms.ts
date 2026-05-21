@@ -5,10 +5,16 @@ import * as ttt from './games/tic-tac-toe.js';
 import * as es from './games/emperor-slave.js';
 import * as nine from './games/nine.js';
 import * as mt from './games/mine-texas.js';
-import * as guess from './games/guess.js';
-import { triggerAiMove, triggerGuessAiInitialMove } from './ai.js';
+import * as stance from './games/stance.js';
+import * as bossBlast from './games/boss-blast.js';
+import * as bossTornado from './games/boss-tornado.js';
+import * as bossThunder from './games/boss-thunder.js';
+import * as bossSpacetime from './games/boss-spacetime.js';
+import * as bossTidal from './games/boss-tidal.js';
+import * as bossSiege from './games/boss-siege.js';
+import { triggerAiMove } from './ai.js';
 
-const GAME_MODULES = { 'tic-tac-toe': ttt, 'emperor-slave': es, 'nine': nine, 'mine-texas': mt, 'guess': guess };
+const GAME_MODULES = { 'tic-tac-toe': ttt, 'emperor-slave': es, 'nine': nine, 'mine-texas': mt, 'stance': stance, 'boss-blast': bossBlast, 'boss-tornado': bossTornado, 'boss-thunder': bossThunder, 'boss-spacetime': bossSpacetime, 'boss-tidal': bossTidal, 'boss-siege': bossSiege };
 
 const rooms = new Map<string, Room>();
 const wsToRoom = new Map<unknown, string>();
@@ -40,15 +46,13 @@ export const handleCreate = (ws: WebSocket, nickname: string, game: GameType) =>
     send(ws, { type: 'room_created', roomId: id, yourRole: hostRole });
 };
 
-export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameType, mode?: string) => {
+export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameType) => {
     const id = Math.random().toString(36).slice(2, 6).toUpperCase();
     const mod = GAME_MODULES[game];
     const aiWs = {} as unknown as WebSocket;
     const aiNickname = 'AI';
-    // For guess player-asks mode: human is questioner (ROLES[1]), AI is answerer (ROLES[0])
-    const swapRoles = game === 'guess' && mode === 'player-asks';
-    const humanRole = swapRoles ? mod.ROLES[1] : mod.ROLES[0];
-    const aiRole = swapRoles ? mod.ROLES[0] : mod.ROLES[1];
+    const humanRole = mod.ROLES[0];
+    const aiRole = mod.ROLES[1];
     const room: Room = {
         id, gameType: game, status: 'playing',
         players: [
@@ -64,8 +68,11 @@ export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameTy
     wsToRoom.set(aiWs, id);
     send(ws, { type: 'room_created', roomId: id, yourRole: humanRole });
     send(ws, { type: 'game_start', opponentNickname: aiNickname, yourRole: humanRole, ...getStartData(mod, room) });
-    if (game === 'guess') {
-        void triggerGuessAiInitialMove(room);
+    if (game === 'stance') {
+        void triggerAiMove(room);
+    }
+    if (game === 'boss-blast' || game === 'boss-tornado' || game === 'boss-thunder' || game === 'boss-spacetime' || game === 'boss-tidal' || game === 'boss-siege') {
+        void triggerAiMove(room);
     }
 };
 
@@ -133,8 +140,8 @@ const startRematch = (room: Room) => {
     room.spectators.forEach((s) => {
         send(s, { type: 'spectate_update', state: mod.getSpectateState(room) });
     });
-    if (room.gameType === 'guess' && room.players.some(p => p.isAI)) {
-        void triggerGuessAiInitialMove(room);
+    if (room.gameType === 'stance' && room.players.some(p => p.isAI)) {
+        void triggerAiMove(room);
     }
 };
 

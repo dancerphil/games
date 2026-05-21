@@ -47,12 +47,12 @@ const broadcastOnlineCount = () => {
 wss.on('connection', (ws) => {
     broadcastOnlineCount();
     ws.on('message', (data) => {
-        const msg = JSON.parse(data.toString()) as { type: string; nickname?: string; roomId?: string; game?: GameType; mode?: string };
+        const msg = JSON.parse(data.toString()) as { type: string; nickname?: string; roomId?: string; game?: GameType };
         if (msg.type === 'create_room' && msg.nickname && msg.game) {
             handleCreate(ws, msg.nickname, msg.game);
         }
         else if (msg.type === 'create_ai_room' && msg.nickname && msg.game) {
-            handleCreateAiRoom(ws, msg.nickname, msg.game, msg.mode);
+            handleCreateAiRoom(ws, msg.nickname, msg.game);
         }
         else if (msg.type === 'join_room' && msg.roomId && msg.nickname) {
             handleJoin(ws, msg.roomId, msg.nickname);
