@@ -4,6 +4,7 @@ extends Node
 
 const GAMES := [
 	{"id": "tic_tac_toe", "title": "井字棋", "scene": "res://games/tic_tac_toe/tic_tac_toe.tscn"},
+	{"id": "card_games", "title": "卡牌游戏", "scene": "res://games/card_games/card_games.tscn"},
 ]
 
 signal launch_requested(scene_path: String)
