@@ -8,6 +8,7 @@ import { cors } from 'hono/cors';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { GameType } from './types.js';
 import { getRoomList, handleCreate, handleCreateAiRoom, handleDisconnect, handleJoin, handleMove, handleRematch, handleSpectate } from './rooms.js';
+import { handleRelayCreate, handleRelayDisconnect, handleRelayJoin, handleRelayMessage } from './relay.js';
 
 const app = new Hono();
 
@@ -22,7 +23,7 @@ app.get('/*', async (c) => {
     return c.html(html);
 });
 
-const port = 8789;
+const port = Number(process.env.PORT) || 8793;
 const server = serve({ fetch: app.fetch, port }, (info) => {
     console.log(`Listening on http://localhost:${info.port}`);
 });
@@ -47,8 +48,17 @@ const broadcastOnlineCount = () => {
 wss.on('connection', (ws) => {
     broadcastOnlineCount();
     ws.on('message', (data) => {
-        const msg = JSON.parse(data.toString()) as { type: string; nickname?: string; roomId?: string; game?: GameType };
-        if (msg.type === 'create_room' && msg.nickname && msg.game) {
+        const msg = JSON.parse(data.toString()) as { type: string; nickname?: string; roomId?: string; game?: GameType; payload?: unknown };
+        if (msg.type === 'relay_create') {
+            handleRelayCreate(ws);
+        }
+        else if (msg.type === 'relay_join' && msg.roomId) {
+            handleRelayJoin(ws, msg.roomId);
+        }
+        else if (msg.type === 'relay') {
+            handleRelayMessage(ws, msg.payload);
+        }
+        else if (msg.type === 'create_room' && msg.nickname && msg.game) {
             handleCreate(ws, msg.nickname, msg.game);
         }
         else if (msg.type === 'create_ai_room' && msg.nickname && msg.game) {
@@ -68,7 +78,7 @@ wss.on('connection', (ws) => {
         }
     });
     ws.on('close', () => {
-        handleDisconnect(ws);
+        if (!handleRelayDisconnect(ws)) { handleDisconnect(ws); } // eslint-disable-line @stylistic/max-statements-per-line
         broadcastOnlineCount();
     });
 });

@@ -11,14 +11,15 @@ export default defineConfig({
         conditions: ['source'],
     },
     server: {
+        port: 8792,
         proxy: {
             '/ws': {
-                target: 'http://localhost:8789',
+                target: 'http://localhost:8791',
                 ws: true,
                 changeOrigin: true,
             },
             '/api': {
-                target: 'http://localhost:8789',
+                target: 'http://localhost:8791',
                 changeOrigin: true,
             },
         },
@@ -28,6 +29,7 @@ export default defineConfig({
         emptyOutDir: true,
     },
     preview: {
+        port: 8794,
         allowedHosts: ['games.dancerphil.com'],
     },
 });

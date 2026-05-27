@@ -5,3 +5,7 @@
 /packages/*/*.tsbuildinfo
 /packages/server/public
 .env
+
+# Godot
+/dist
+/.godot

@@ -7,7 +7,7 @@
         "dev": "vite",
         "build": "tsc && vite build",
         "preview": "vite preview",
-        "serve": "vite preview --port 8789 --strictPort",
+        "serve": "vite preview --port 8794 --strictPort",
         "lint-type": "tsc --noEmit"
     },
     "dependencies": {

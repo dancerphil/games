@@ -4,9 +4,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "tsx watch src/index.ts",
-        "start": "tsx src/index.ts",
-        "serve": "tsx src/index.ts",
+        "dev": "PORT=8791 tsx watch src/index.ts",
+        "start": "PORT=8793 tsx src/index.ts",
+        "serve": "PORT=8793 tsx src/index.ts",
         "lint-type": "tsc --noEmit"
     },
     "dependencies": {
