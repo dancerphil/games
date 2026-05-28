@@ -8,13 +8,14 @@ import { cors } from 'hono/cors';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { GameType } from './types.js';
 import { getRoomList, handleCreate, handleCreateAiRoom, handleDisconnect, handleJoin, handleMove, handleRematch, handleSpectate } from './rooms.js';
-import { handleRelayCreate, handleRelayDisconnect, handleRelayJoin, handleRelayMessage } from './relay.js';
+import { getRelayRoomList, handleRelayCreate, handleRelayDisconnect, handleRelayJoin, handleRelayMessage } from './relay.js';
 
 const app = new Hono();
 
 app.use('*', cors());
 
 app.get('/api/rooms', c => c.json(getRoomList()));
+app.get('/api/relay-rooms', c => c.json(getRelayRoomList()));
 
 app.use('/*', serveStatic({ root: './public' }));
 

@@ -16,6 +16,7 @@ signal message(payload: Dictionary)
 signal net_error(text: String)
 
 const DEFAULT_URL := "ws://localhost:8791/ws"
+const HTTP_BASE := "http://localhost:8791"
 
 var role := ""  # "host" / "guest" / ""
 var room_id := ""
@@ -100,6 +101,19 @@ func _flush_pending() -> void:
 	for data in _pending:
 		_socket.send_text(JSON.stringify(data))
 	_pending.clear()
+
+func fetch_relay_rooms(callback: Callable) -> void:
+	var http := HTTPRequest.new()
+	add_child(http)
+	http.request_completed.connect(func(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+		http.queue_free()
+		if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+			callback.call([])
+			return
+		var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
+		callback.call(parsed if typeof(parsed) == TYPE_ARRAY else [])
+	)
+	http.request(HTTP_BASE + "/api/relay-rooms")
 
 func _reset() -> void:
 	role = ""

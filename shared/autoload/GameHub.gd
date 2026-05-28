@@ -4,7 +4,13 @@ extends Node
 
 const GAMES := [
 	{"id": "tic_tac_toe", "title": "井字棋", "scene": "res://games/tic_tac_toe/tic_tac_toe.tscn"},
-	{"id": "card_games", "title": "卡牌游戏", "scene": "res://games/card_games/card_games.tscn"},
+	{"id": "emperor_slave", "title": "国王与奴隶", "scene": "res://games/card_games/emperor_slave/emperor_slave.tscn"},
+	{"id": "nine", "title": "九张牌", "scene": "res://games/card_games/nine/nine.tscn"},
+	{"id": "mine_texas", "title": "地雷德扑", "scene": "res://games/card_games/mine_texas/mine_texas.tscn"},
+	{"id": "stance", "title": "招式对战", "scene": "res://games/stance/stance.tscn"},
+	{"id": "boss", "title": "招式 Boss 战", "scene": "res://games/boss/boss.tscn"},
+	{"id": "world", "title": "开放世界", "scene": "res://games/world/world.tscn"},
+	{"id": "world_boss", "title": "世界 Boss 战", "scene": "res://games/world_boss/world_boss.tscn"},
 ]
 
 signal launch_requested(scene_path: String)

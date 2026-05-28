@@ -51,6 +51,11 @@ export const handleRelayMessage = (ws: WebSocket, payload: unknown) => {
     if (peer) { send(peer, { type: 'relay', payload }); }
 };
 
+export const getRelayRoomList = () =>
+    [...relayRooms.values()]
+        .filter(r => r.guest === null)
+        .map(r => ({ id: r.id }));
+
 export const handleRelayDisconnect = (ws: WebSocket): boolean => {
     const roomId = wsToRelayRoom.get(ws);
     if (!roomId) { return false; }
