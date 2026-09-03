@@ -9,6 +9,7 @@ import * as bossThunder from './boss-thunder.js';
 import * as bossSpacetime from './boss-spacetime.js';
 import * as bossTidal from './boss-tidal.js';
 import * as bossSiege from './boss-siege.js';
+import * as poetryHeart from './poetry-heart.js';
 
 export const GAME_MODULES = {
     'tic-tac-toe': ttt,
@@ -22,4 +23,5 @@ export const GAME_MODULES = {
     'boss-spacetime': bossSpacetime,
     'boss-tidal': bossTidal,
     'boss-siege': bossSiege,
+    'poetry-heart': poetryHeart,
 } as const;

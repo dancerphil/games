@@ -17,6 +17,7 @@ export interface GameInfo {
 }
 
 export const GAMES: GameInfo[] = [
+    { key: 'poetry-heart', label: '文心', tooltip: '200张竹简散落桌面，4张同诗按1-2-3-4顺序入栈自动收纳，集齐50首。1/3/6/10首解锁句序/作者/标题/高亮' },
     { key: 'tic-tac-toe', label: '井字棋', tooltip: '双方轮流在 3×3 格子中落子，先将三子连成一线者获胜，格子占满则为平局' },
     { key: 'emperor-slave', label: '国王与奴隶', tooltip: '共 5 回合。国王方持 1 张国王 + 4 张平民，奴隶方持 1 张奴隶 + 4 张平民。奴隶遇国王则奴隶方胜，平民遇奴隶则国王方胜，国王遇平民则国王方胜（奴隶必遇平民），其余继续' },
     { key: 'nine', label: '九张牌', tooltip: '双方各有 1~9 九张牌，每回合同出一张，点数大者获得两张牌点数之和，9 回合后总分高者胜' },

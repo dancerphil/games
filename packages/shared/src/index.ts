@@ -5,3 +5,6 @@ export * from './patterns.js';
 export * from './stances.js';
 export * from './room.js';
 export * from './shuffle.js';
+export * as PoetryHeart from './poetryHeart/index.js';
+export type { Slip, PoetryHeartState, SkillUnlocks } from './poetryHeart/types.js';
+export type { Slip as PoetryHeartSlip, SkillUnlocks as PoetryHeartSkillUnlocks } from './poetryHeart/types.js';

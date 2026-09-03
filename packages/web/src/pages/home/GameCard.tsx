@@ -22,7 +22,7 @@ export const GameCard = ({ game, rooms }: GameCardProps) => {
             if (msg['type'] === 'room_created') {
                 done = true;
                 setMessageHandler(null);
-                void navigate(`/room/${msg['roomId'] as string}`, { state: { isCreator: true, yourRole: msg['yourRole'] as string } });
+                void navigate(`/room/${msg['roomId'] as string}`, { state: { isCreator: true, yourRole: msg['yourRole'] as string, initialState: msg['state'] as unknown } });
             }
             else if (msg['type'] === 'error') {
                 done = true;

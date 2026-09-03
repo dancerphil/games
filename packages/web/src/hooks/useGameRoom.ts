@@ -46,6 +46,7 @@ export const useGameRoom = <TGameMsg>({ game, nickname, onGameMessage, onReset, 
             setRole(raw['yourRole'] as string);
             setMyIndex(0);
             setPhase('waiting');
+            if (raw['state']) { onGameMessageRef.current(raw as unknown as TGameMsg); }
         }
         else if (type === 'room_joined') {
             setRole(raw['yourRole'] as string);

@@ -33,7 +33,13 @@ export const handleCreate = (ws: WebSocket, nickname: string, game: GameType) =>
     };
     rooms.set(id, room);
     wsToRoom.set(ws, id);
-    send(ws, { type: 'room_created', roomId: id, yourRole: hostRole });
+    if (game === 'poetry-heart') {
+        send(ws, { type: 'room_created', roomId: id, yourRole: hostRole, ...getStartData(mod, room) });
+        send(ws, { type: 'game_start', opponentNickname: '', yourRole: hostRole, ...getStartData(mod, room) });
+    }
+    else {
+        send(ws, { type: 'room_created', roomId: id, yourRole: hostRole });
+    }
 };
 
 export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameType) => {
@@ -94,6 +100,16 @@ export const handleJoin = (ws: WebSocket, roomId: string, nickname: string) => {
     const room = rooms.get(roomId);
     if (!room) {
         send(ws, { type: 'error', message: '房间不存在' });
+        return;
+    }
+    if (room.gameType === 'poetry-heart') {
+        const guestRole = GAME_MODULES[room.gameType].ROLES[0];
+        room.players.push({ ws, nickname, role: guestRole });
+        wsToRoom.set(ws, roomId);
+        send(ws, { type: 'room_joined', yourRole: guestRole, opponentNickname: room.players[0].nickname, ...getStartData(GAME_MODULES[room.gameType], room) });
+        room.players.forEach((p) => {
+            if (p.ws !== ws) { send(p.ws, { type: 'collected', collected: (room.gameState as { collected: string[] }).collected }); }
+        });
         return;
     }
     if (room.status !== 'waiting') {
@@ -186,7 +202,9 @@ export const handleMove = (ws: WebSocket | object, data: unknown) => {
     const roomId = wsToRoom.get(ws);
     if (!roomId) { return; } // eslint-disable-line @stylistic/max-statements-per-line
     const room = rooms.get(roomId);
-    if (!room || room.status !== 'playing') { return; } // eslint-disable-line @stylistic/max-statements-per-line
+    if (!room) { return; } // eslint-disable-line @stylistic/max-statements-per-line
+    if (room.gameType !== 'poetry-heart' && room.status !== 'playing') { return; } // eslint-disable-line @stylistic/max-statements-per-line
+    if (room.gameType === 'poetry-heart' && room.status === 'ended') { return; } // eslint-disable-line @stylistic/max-statements-per-line
     const stateBefore = JSON.stringify(room.gameState);
     const ended = GAME_MODULES[room.gameType].handleMove(room, ws as WebSocket, data);
     if (ended) {
@@ -196,7 +214,7 @@ export const handleMove = (ws: WebSocket | object, data: unknown) => {
     }
     const stateChanged = JSON.stringify(room.gameState) !== stateBefore;
     const isAiMove = room.players.some(p => p.isAI && p.ws === ws);
-    if (!stateChanged && !isAiMove) {
+    if (!stateChanged && !isAiMove && room.gameType !== 'poetry-heart') {
         send(ws as WebSocket, { type: 'error', message: '无效操作' });
         return;
     }

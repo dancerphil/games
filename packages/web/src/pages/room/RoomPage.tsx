@@ -13,8 +13,11 @@ import { BossThunderPage } from '../boss-thunder/BossThunderPage';
 import { BossSpacetimePage } from '../boss-spacetime/BossSpacetimePage';
 import { BossTidalPage } from '../boss-tidal/BossTidalPage';
 import { BossSiegePage } from '../boss-siege/BossSiegePage';
+import { PoetryHeartPage } from '../poetry-heart/PoetryHeartPage';
+import type { PoetryHeartState } from '@games/shared';
 
 const GAME_TITLES: Record<GameType, string> = {
+    'poetry-heart': '文心',
     'tic-tac-toe': '井字棋',
     'emperor-slave': '国王与奴隶',
     'nine': '九张牌',
@@ -36,7 +39,7 @@ interface RoomInfo {
 
 export const RoomPage = () => {
     const { roomId = '' } = useParams<{ roomId: string }>();
-    const location = useLocation() as { state?: { isCreator?: boolean; yourRole?: string; isSpectate?: boolean } };
+    const location = useLocation() as { state?: { isCreator?: boolean; yourRole?: string; isSpectate?: boolean; initialState?: unknown } };
     const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +73,13 @@ export const RoomPage = () => {
     const isCreator = Boolean(location.state?.isCreator);
     const isSpectate = Boolean(location.state?.isSpectate);
     const initialRole = location.state?.yourRole as string | undefined;
+    const initialState = location.state?.initialState as PoetryHeartState | undefined;
     const gameProps = { roomId, isCreator, isSpectate, initialRole };
+    const poetryHeartProps = { roomId, isCreator, isSpectate, initialRole, initialState };
+
+    if (roomInfo.gameType === 'poetry-heart') {
+        return <PoetryHeartPage {...poetryHeartProps} />;
+    }
 
     return (
         <Stack align="center" p="xl" gap="lg">
