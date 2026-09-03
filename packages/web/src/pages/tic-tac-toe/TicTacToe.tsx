@@ -11,7 +11,7 @@ import type { Board, Player, TttGameMessage } from './wsTypes';
 
 const EMPTY_BOARD: Board = Array(9).fill(null) as Board;
 
-export const TicTacToe = ({ initialAction }: { initialAction?: InitialAction }) => {
+export const TicTacToe = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: { initialAction?: InitialAction; roomId?: string; isCreator?: boolean; isSpectate?: boolean; initialRole?: string }) => {
     const [nickname] = useNickname();
     const [board, setBoard] = useState<Board>([...EMPTY_BOARD]);
     const [currentTurn, setCurrentTurn] = useState<Player>('X');
@@ -42,8 +42,8 @@ export const TicTacToe = ({ initialAction }: { initialAction?: InitialAction }) 
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const { connected, phase, roomId, role, opponentNickname, spectateNicknames, send, rematch, setGameEnded, rematchRequests, totalScores, myIndex } =
-        useGameRoom<TttGameMessage>({ game: 'tic-tac-toe', nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
+    const { connected, phase, roomId: stateRoomId, role, opponentNickname, spectateNicknames, send, rematch, addAi, setGameEnded, rematchRequests, totalScores, myIndex } =
+        useGameRoom<TttGameMessage>({ game: 'tic-tac-toe', roomId, isCreator, isSpectate, initialRole, nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
 
     const handleCellClick = useCallback((index: number) => {
         if (phase !== 'playing' || currentTurn !== role) { return; }
@@ -51,7 +51,7 @@ export const TicTacToe = ({ initialAction }: { initialAction?: InitialAction }) 
     }, [phase, currentTurn, role, send]);
 
     if (!connected || phase === 'lobby') { return <GameConnecting />; }
-    if (phase === 'waiting') { return <RoomWaiting roomId={roomId} />; }
+    if (phase === 'waiting') { return <RoomWaiting roomId={stateRoomId || roomId || ''} onAddAi={addAi} />; }
 
     const isSpectating = phase === 'spectating';
     const [p1Name, p2Name] = spectateNicknames;

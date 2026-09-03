@@ -6,7 +6,7 @@ const validMoves = (pos: Pos): Pos[] => CARDINALS.map(direction => add(pos, dire
 
 // Move both units toward the player, slightly favoring shared rows/columns so their lines overlap the board.
 const pickBestMoves = (unit1Moves: Pos[], unit2Moves: Pos[], playerPos: Pos, random: () => number): [Pos, Pos] => {
-    const pairs: Array<{ move1: Pos; move2: Pos; score: number }> = [];
+    const pairs: { move1: Pos; move2: Pos; score: number }[] = [];
     for (const move1 of unit1Moves) {
         for (const move2 of unit2Moves) {
             const distance = manhattan(move1, playerPos) + manhattan(move2, playerPos);

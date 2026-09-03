@@ -1,20 +1,21 @@
 import type { WebSocket } from 'ws';
-import type { Room } from '../types.js';
-import { send } from '../send.js';
 import type { Pos, StanceName } from '@games/shared';
 import {
     ALL_STANCES,
     STANCES,
     eqPos,
     makeContext,
+    shuffle,
     skillAttackTargets,
     skillHitCells,
     skillMoveOptions,
 } from '@games/shared';
+import type { Room } from '../types.js';
+import { send } from '../send.js';
 
 export const ROLES: [string, string] = ['player', 'boss'];
 
-interface HandState { hand: StanceName[]; discard: StanceName[]; deckSelected: boolean; pendingDoubleDamage?: boolean; }
+interface HandState { hand: StanceName[]; discard: StanceName[]; deckSelected: boolean; pendingDoubleDamage?: boolean }
 
 export interface BossEngineState<TExtra> {
     phase: 'deck_selection' | 'playing' | 'ended';
@@ -38,9 +39,9 @@ export interface TurnInput<TExtra> {
 
 export interface TurnOutput<TExtra> {
     bossUnits: Pos[];
-    unitMoves: Array<{ from: Pos; to: Pos }>;
-    aoe: Pos[];                // flashy area for this turn's attack animation
-    hazard?: Pos[];            // persistent cells that also damage (e.g. lightning trail)
+    unitMoves: { from: Pos; to: Pos }[];
+    aoe: Pos[]; // flashy area for this turn's attack animation
+    hazard?: Pos[]; // persistent cells that also damage (e.g. lightning trail)
     nextExtra: TExtra;
 }
 
@@ -57,15 +58,6 @@ export interface BossDefinition<TExtra> {
     spectateExtras?: (extra: TExtra, bossUnits: Pos[]) => Record<string, unknown>;
     reportMissAsZeroDamage?: boolean;
 }
-
-const shuffle = <T>(items: T[]): T[] => {
-    const result = [...items];
-    for (let index = result.length - 1; index > 0; index--) {
-        const swapIndex = Math.floor(Math.random() * (index + 1));
-        [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
-    }
-    return result;
-};
 
 const playerContext = (from: Pos, to: Pos, opponent: Pos) =>
     makeContext({ from, to, playerIndex: 0, opponent });
@@ -123,7 +115,8 @@ export const createBossGame = <TExtra>(definition: BossDefinition<TExtra>) => {
         const moveOptions = skillMoveOptions(cardSkill, playerContext(playerFrom, playerFrom, state.positions[1]));
         if (moveOptions.length === 0) {
             playerTo = playerFrom;
-        } else {
+        }
+        else {
             if (!moveTo || !moveOptions.some(option => eqPos(option, moveTo))) { return false; }
             playerTo = moveTo;
         }
@@ -173,7 +166,8 @@ export const createBossGame = <TExtra>(definition: BossDefinition<TExtra>) => {
         if (gameOver) {
             state.winner = state.hp[0] <= 0 && state.hp[1] <= 0 ? 'draw' : state.hp[0] <= 0 ? 1 : 0;
             state.phase = 'ended';
-        } else {
+        }
+        else {
             state.turn++;
         }
 

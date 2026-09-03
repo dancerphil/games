@@ -7,13 +7,13 @@ type Boss3Skill = 'thunder-strike' | 'thunderstorm' | 'thunder-cut';
 
 const skillLabels: Record<Boss3Skill, string> = {
     'thunder-strike': '雷击',
-    thunderstorm: '雷暴',
+    'thunderstorm': '雷暴',
     'thunder-cut': '雷切',
 };
 
 const skillDescriptions: Record<Boss3Skill, string> = {
     'thunder-strike': '移动一格，劈中玩家原地并留下闪电地块',
-    thunderstorm: '移动一格，向玩家靠近，落脚后全屏释放雷暴',
+    'thunderstorm': '移动一格，向玩家靠近，落脚后全屏释放雷暴',
     'thunder-cut': '直线突进三格，对起点到终点的四格造成伤害',
 };
 
@@ -89,8 +89,12 @@ const getBoss3WarningHighlights = (skill: Boss3Skill, bossPos: Pos, playerPos: P
     return getThunderCutWarning(bossPos);
 };
 
-export const BossThunderPage = ({ initialAction }: { initialAction?: InitialAction }) => (
+export const BossThunderPage = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: { initialAction?: InitialAction; roomId?: string; isCreator?: boolean; isSpectate?: boolean; initialRole?: string }) => (
     <BossBattlePage<Boss3Skill, Boss3ExtraState, Boss3GameMessage>
+        roomId={roomId}
+        isCreator={isCreator}
+        isSpectate={isSpectate}
+        initialRole={initialRole}
         initialAction={initialAction}
         config={{
             game: 'boss-thunder',

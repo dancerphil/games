@@ -77,8 +77,12 @@ interface BossGameMessage {
     winner?: 0 | 1 | 'draw';
 }
 
-export const BossBlastPage = ({ initialAction }: { initialAction?: InitialAction }) => (
+export const BossBlastPage = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: { initialAction?: InitialAction; roomId?: string; isCreator?: boolean; isSpectate?: boolean; initialRole?: string }) => (
     <BossBattlePage<BossSkill, Record<string, never>, BossGameMessage>
+        roomId={roomId}
+        isCreator={isCreator}
+        isSpectate={isSpectate}
+        initialRole={initialRole}
         initialAction={initialAction}
         config={{
             game: 'boss-blast',

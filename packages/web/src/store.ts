@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import type { GameType, InitialAction } from './hooks/useGameRoom';
 
 type MessageHandler = (msg: Record<string, unknown>) => void;
 
@@ -9,29 +8,16 @@ let _reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 let _messageHandler: MessageHandler | null = null;
 
 interface AppStore {
-    game: GameType | null;
-    initialAction: InitialAction | null;
     connected: boolean;
     onlineCount: number;
-    enterGame: (game: GameType, initialAction: InitialAction) => void;
-    exitGame: () => void;
     send: (msg: object) => void;
     setMessageHandler: (handler: MessageHandler | null) => void;
     init: () => () => void;
 }
 
-export const useAppStore = create<AppStore>((set) => ({
-    game: null,
-    initialAction: null,
+export const useAppStore = create<AppStore>(set => ({
     connected: false,
     onlineCount: 0,
-
-    enterGame: (game, initialAction) => set({ game, initialAction }),
-
-    exitGame: () => {
-        _messageHandler = null;
-        set({ game: null, initialAction: null });
-    },
 
     send: (msg) => {
         if (_ws?.readyState === WebSocket.OPEN) { _ws.send(JSON.stringify(msg)); } // eslint-disable-line @stylistic/max-statements-per-line

@@ -7,13 +7,13 @@ import { BossBattlePage } from '../boss/BossBattlePage';
 type Boss2Skill = 'whirlwind' | 'wind-blade' | 'eye-of-storm';
 
 const skillLabels: Record<Boss2Skill, string> = {
-    whirlwind: '旋风',
+    'whirlwind': '旋风',
     'wind-blade': '风刃',
     'eye-of-storm': '风眼',
 };
 
 const skillDescriptions: Record<Boss2Skill, string> = {
-    whirlwind: '移动一格，以落点为中心攻击 3×3 外圈，之后持续扩散',
+    'whirlwind': '移动一格，以落点为中心攻击 3×3 外圈，之后持续扩散',
     'wind-blade': '原地不动，向四个斜方向释放直线攻击，旋风同时扩散为 5×5 外圈',
     'eye-of-storm': '无直接伤害，旋风扩散为 7×7 外圈',
 };
@@ -128,8 +128,12 @@ const getBoss2WarningHighlights = (skill: Boss2Skill, bossPos: Pos): Pos[] => {
     return dedup(whirlwindLandings(bossPos).flatMap(ring3x3));
 };
 
-export const BossTornadoPage = ({ initialAction }: { initialAction?: InitialAction }) => (
+export const BossTornadoPage = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: { initialAction?: InitialAction; roomId?: string; isCreator?: boolean; isSpectate?: boolean; initialRole?: string }) => (
     <BossBattlePage<Boss2Skill, Boss2ExtraState, Boss2GameMessage>
+        roomId={roomId}
+        isCreator={isCreator}
+        isSpectate={isSpectate}
+        initialRole={initialRole}
         initialAction={initialAction}
         config={{
             game: 'boss-tornado',

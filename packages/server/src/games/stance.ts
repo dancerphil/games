@@ -1,9 +1,9 @@
 import type { WebSocket } from 'ws';
+import type { StanceName, Pos } from '@games/shared';
 import type { Room } from '../types.js';
 import { send } from '../send.js';
-import type { StanceName, Pos } from '@games/shared';
 export type { StanceName, Pos };
-import { ALL_STANCES, STANCES, eqPos, makeContext, skillAttackTargets, skillHitCells, skillMoveOptions } from '@games/shared';
+import { ALL_STANCES, STANCES, eqPos, makeContext, shuffle, skillAttackTargets, skillHitCells, skillMoveOptions } from '@games/shared';
 
 const stanceContext = (pi: number, from: Pos, to: Pos, opponent: Pos) =>
     makeContext({ from, to, playerIndex: pi as 0 | 1, opponent });
@@ -17,8 +17,8 @@ const isNoMove = (card: StanceName): boolean => STANCES[card].move(makeContext()
 const isDodge = (card: StanceName): boolean => Boolean(STANCES[card].immune);
 const isCharge = (card: StanceName): boolean => Boolean(STANCES[card].charge);
 
-interface HandState { hand: StanceName[]; discard: StanceName[]; deckSelected: boolean; pendingDoubleDamage?: boolean; }
-interface TurnAction { card: StanceName; moveTo: Pos; attackAt: Pos | null; }
+interface HandState { hand: StanceName[]; discard: StanceName[]; deckSelected: boolean; pendingDoubleDamage?: boolean }
+interface TurnAction { card: StanceName; moveTo: Pos; attackAt: Pos | null }
 
 interface StanceState {
     phase: 'deck_selection' | 'playing' | 'ended';
@@ -32,19 +32,6 @@ interface StanceState {
 }
 
 export const ROLES: [string, string] = ['player0', 'player1'];
-
-
-const shuffle = <T>(arr: T[]): T[] => {
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-};
-
-
-
 
 export const initState = (): StanceState => ({
     phase: 'deck_selection',
@@ -92,7 +79,8 @@ export const handleMove = (room: Room, ws: WebSocket, data: unknown): boolean =>
     let resolvedMoveTo: Pos;
     if (isNoMove(card)) {
         resolvedMoveTo = originalPos;
-    } else {
+    }
+    else {
         const moveOpts = getMoveOptions(card, originalPos, pi);
         if (!moveTo || !moveOpts.some(m => eqPos(m, moveTo))) { return false; }
         resolvedMoveTo = moveTo;
@@ -102,7 +90,8 @@ export const handleMove = (room: Room, ws: WebSocket, data: unknown): boolean =>
     const attackOpts = getAttackOptions(card, resolvedMoveTo, pi, originalPos);
     if (attackOpts.length === 0) {
         resolvedAttackAt = null;
-    } else {
+    }
+    else {
         if (!attackAt || !attackOpts.some(a => eqPos(a, attackAt))) { return false; }
         resolvedAttackAt = attackAt;
     }
@@ -153,7 +142,8 @@ export const handleMove = (room: Room, ws: WebSocket, data: unknown): boolean =>
             if (inPoison) {
                 state.poisonTurns[i]++;
                 if (state.poisonTurns[i] >= 2) { state.hp[i]--; poisonDamage[i] = 1; }
-            } else {
+            }
+            else {
                 state.poisonTurns[i] = 0;
             }
         }
@@ -164,7 +154,8 @@ export const handleMove = (room: Room, ws: WebSocket, data: unknown): boolean =>
     if (gameOver) {
         state.winner = state.hp[0] <= 0 && state.hp[1] <= 0 ? 'draw' : state.hp[0] <= 0 ? 1 : 0;
         state.phase = 'ended';
-    } else {
+    }
+    else {
         state.turn++;
     }
 
@@ -195,7 +186,7 @@ export const handleMove = (room: Room, ws: WebSocket, data: unknown): boolean =>
             ...(gameOver ? {} : { hand: state.handStates[i].hand, discard: state.handStates[i].discard, opponentHand: state.handStates[1 - i].hand, opponentDiscard: state.handStates[1 - i].discard, nextTurn: state.turn, numPoisonRings: Math.floor(state.turn / 5) }),
         });
     });
-    room.spectators.forEach(s => { send(s, { type: 'spectate_update', state: getSpectateState(room) }); });
+    room.spectators.forEach((s) => { send(s, { type: 'spectate_update', state: getSpectateState(room) }); });
     return gameOver;
 };
 

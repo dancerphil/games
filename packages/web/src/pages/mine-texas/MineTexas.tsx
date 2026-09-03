@@ -83,7 +83,7 @@ const CardList = ({ cards, mineHitCard }: { cards: number[]; mineHitCard?: numbe
     </Text>
 );
 
-export const MineTexas = ({ initialAction }: { initialAction?: InitialAction }) => {
+export const MineTexas = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: { initialAction?: InitialAction; roomId?: string; isCreator?: boolean; isSpectate?: boolean; initialRole?: string }) => {
     const [nickname] = useNickname();
     const [myHand, setMyHand] = useState<number[]>([]);
     const [oppHand, setOppHand] = useState<number[]>([]);
@@ -136,15 +136,15 @@ export const MineTexas = ({ initialAction }: { initialAction?: InitialAction }) 
         if (msg.gameOver) { setGameEnded(); } // eslint-disable-line @stylistic/max-statements-per-line
     }, [handleRoundResult, resetGame, applyHands]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const { connected, phase, roomId, opponentNickname, send, rematch, setGameEnded, rematchRequests, totalScores, myIndex } =
-        useGameRoom<MtGameMessage>({ game: 'mine-texas', nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
+    const { connected, phase, roomId: stateRoomId, opponentNickname, send, rematch, addAi, setGameEnded, rematchRequests, totalScores, myIndex } =
+        useGameRoom<MtGameMessage>({ game: 'mine-texas', roomId, isCreator, isSpectate, initialRole, nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
 
     const sortedMyHand = useMemo(() => sortCards(myHand), [myHand]);
     const sortedOppHand = useMemo(() => sortCards(oppHand), [oppHand]);
 
     const toggleCard = useCallback((card: number) => {
         if (submitted) { return; }
-        setSelected(prev => {
+        setSelected((prev) => {
             const next = new Set(prev);
             if (next.has(card)) { next.delete(card); }
             else if (next.size < 5) { next.add(card); }
@@ -164,7 +164,7 @@ export const MineTexas = ({ initialAction }: { initialAction?: InitialAction }) 
     }, [selected, mine, send]);
 
     if (!connected || phase === 'lobby') { return <GameConnecting />; }
-    if (phase === 'waiting') { return <RoomWaiting roomId={roomId} />; }
+    if (phase === 'waiting') { return <RoomWaiting roomId={stateRoomId || roomId || ''} onAddAi={addAi} />; }
 
     const myWins = myIndex === 0 ? totalScores.p1Wins : totalScores.p2Wins;
     const oppWins = myIndex === 0 ? totalScores.p2Wins : totalScores.p1Wins;

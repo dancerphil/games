@@ -2,9 +2,11 @@ import { Button, CopyButton, Group, Loader, Stack, Text } from '@mantine/core';
 
 interface RoomWaitingProps {
     roomId: string;
+    onAddAi?: () => void;
+    addAiLabel?: string;
 }
 
-export const RoomWaiting = ({ roomId }: RoomWaitingProps) => (
+export const RoomWaiting = ({ roomId, onAddAi, addAiLabel = '添加 AI' }: RoomWaitingProps) => (
     <Stack align="center" gap="md">
         <Loader size="sm" />
         <Text>等待对手加入</Text>
@@ -16,5 +18,10 @@ export const RoomWaiting = ({ roomId }: RoomWaitingProps) => (
                 )}
             </CopyButton>
         </Group>
+        {onAddAi && (
+            <Button size="sm" onClick={onAddAi}>
+                {addAiLabel}
+            </Button>
+        )}
     </Stack>
 );

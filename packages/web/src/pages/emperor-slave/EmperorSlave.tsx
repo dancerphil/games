@@ -33,7 +33,7 @@ interface ESGameMessage {
 const CARD_LABELS: Record<ESCard, string> = { king: '国王', commoner: '平民', slave: '奴隶' };
 const OUTCOME_LABELS: Record<Outcome, string> = { slave_wins: '奴隶方获胜', king_wins: '国王方获胜', continues: '继续' };
 
-export const EmperorSlave = ({ initialAction }: { initialAction?: InitialAction }) => {
+export const EmperorSlave = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: { initialAction?: InitialAction; roomId?: string; isCreator?: boolean; isSpectate?: boolean; initialRole?: string }) => {
     const [nickname] = useNickname();
     const [hand, setHand] = useState<Record<ESCard, number>>({ king: 0, commoner: 0, slave: 0 });
     const [submitted, setSubmitted] = useState(false);
@@ -58,8 +58,8 @@ export const EmperorSlave = ({ initialAction }: { initialAction?: InitialAction 
         if (msg.gameOver) { setGameEnded(); }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const { connected, phase, roomId, role, opponentNickname, spectateNicknames, send, rematch, setGameEnded, rematchRequests, totalScores, myIndex } =
-        useGameRoom<ESGameMessage>({ game: 'emperor-slave', nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
+    const { connected, phase, roomId: stateRoomId, role, opponentNickname, spectateNicknames, send, rematch, addAi, setGameEnded, rematchRequests, totalScores, myIndex } =
+        useGameRoom<ESGameMessage>({ game: 'emperor-slave', roomId, isCreator, isSpectate, initialRole, nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
 
     useEffect(() => {
         if (phase !== 'playing') { return; }
@@ -75,7 +75,7 @@ export const EmperorSlave = ({ initialAction }: { initialAction?: InitialAction 
     }, [submitted, hand, send]);
 
     if (!connected || phase === 'lobby') { return <GameConnecting />; }
-    if (phase === 'waiting') { return <RoomWaiting roomId={roomId} />; }
+    if (phase === 'waiting') { return <RoomWaiting roomId={stateRoomId || roomId || ''} onAddAi={addAi} />; }
 
     const isSpectating = phase === 'spectating';
     const lastRound = history[history.length - 1];

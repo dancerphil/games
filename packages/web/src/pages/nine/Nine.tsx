@@ -31,7 +31,7 @@ interface NineGameMessage {
     state?: { round: number; hands: [number[], number[]]; scores: [number, number]; history: { round: number; p1Card: number; p2Card: number; p1Gained: number; p2Gained: number }[]; winner: string | null };
 }
 
-export const Nine = ({ initialAction }: { initialAction?: InitialAction }) => {
+export const Nine = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: { initialAction?: InitialAction; roomId?: string; isCreator?: boolean; isSpectate?: boolean; initialRole?: string }) => {
     const [nickname] = useNickname();
     const [hand, setHand] = useState<number[]>([]);
     const [submitted, setSubmitted] = useState(false);
@@ -59,8 +59,8 @@ export const Nine = ({ initialAction }: { initialAction?: InitialAction }) => {
         if (msg.gameOver) { setGameEnded(); }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const { connected, phase, roomId, opponentNickname, spectateNicknames, send, rematch, setGameEnded, rematchRequests, totalScores, myIndex } =
-        useGameRoom<NineGameMessage>({ game: 'nine', nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
+    const { connected, phase, roomId: stateRoomId, opponentNickname, spectateNicknames, send, rematch, addAi, setGameEnded, rematchRequests, totalScores, myIndex } =
+        useGameRoom<NineGameMessage>({ game: 'nine', roomId, isCreator, isSpectate, initialRole, nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
 
     useEffect(() => {
         if (phase === 'playing' && hand.length === 0) { setHand([1, 2, 3, 4, 5, 6, 7, 8, 9]); }
@@ -74,7 +74,7 @@ export const Nine = ({ initialAction }: { initialAction?: InitialAction }) => {
     }, [submitted, send]);
 
     if (!connected || phase === 'lobby') { return <GameConnecting />; }
-    if (phase === 'waiting') { return <RoomWaiting roomId={roomId} />; }
+    if (phase === 'waiting') { return <RoomWaiting roomId={stateRoomId || roomId || ''} onAddAi={addAi} />; }
 
     const isSpectating = phase === 'spectating';
     const lastRound = history[history.length - 1];

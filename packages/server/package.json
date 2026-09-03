@@ -5,8 +5,8 @@
     "type": "module",
     "scripts": {
         "dev": "PORT=8791 tsx watch src/index.ts",
-        "start": "PORT=8793 tsx src/index.ts",
-        "serve": "PORT=8793 tsx src/index.ts",
+        "start": "PORT=8789 tsx src/index.ts",
+        "serve": "PORT=8789 tsx src/index.ts",
         "lint-type": "tsc --noEmit"
     },
     "dependencies": {

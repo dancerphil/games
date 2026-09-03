@@ -91,8 +91,12 @@ const getSpacetimeWarningHighlights = (skill: SpacetimeSkill, bossPos: Pos, _pla
     return rectangleBorder(bossPos, boss2Pos);
 };
 
-export const BossSpacetimePage = ({ initialAction }: { initialAction?: InitialAction }) => (
+export const BossSpacetimePage = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: { initialAction?: InitialAction; roomId?: string; isCreator?: boolean; isSpectate?: boolean; initialRole?: string }) => (
     <BossBattlePage<SpacetimeSkill, SpacetimeExtraState, SpacetimeGameMessage>
+        roomId={roomId}
+        isCreator={isCreator}
+        isSpectate={isSpectate}
+        initialRole={initialRole}
         initialAction={initialAction}
         config={{
             game: 'boss-spacetime',

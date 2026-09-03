@@ -36,7 +36,8 @@ export const { ROLES, initState, handleMove, getStartData, getSpectateState, get
         if (skillId === 'destruction') {
             ringAoe = squareRing(CENTER, 1);
             destructionStage = 1;
-        } else {
+        }
+        else {
             const edges = [...ALL_EDGES].sort(() => random() - 0.5);
             waves = [...waves, initWave(edges[0]), initWave(edges[1])];
             if (destructionStage === 1) { ringAoe = squareRing(CENTER, 2); destructionStage = 2; }

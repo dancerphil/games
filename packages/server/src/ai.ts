@@ -4,13 +4,7 @@ import { getAiMove as getEsAiMove } from './games/emperor-slave-ai.js';
 import { getAiMove as getNineAiMove } from './games/nine-ai.js';
 import { getAiMove as getMtAiMove } from './games/mine-texas-ai.js';
 import { getAiDeckSelect as getStanceAiDeckSelect, getAiMove as getStanceAiMove } from './games/stance-ai.js';
-import * as ttt from './games/tic-tac-toe.js';
-import * as es from './games/emperor-slave.js';
-import * as nine from './games/nine.js';
-import * as mt from './games/mine-texas.js';
-import * as stanceMod from './games/stance.js';
-
-const GAME_MODULES = { 'tic-tac-toe': ttt, 'emperor-slave': es, 'nine': nine, 'mine-texas': mt, 'stance': stanceMod };
+import { GAME_MODULES } from './games/registry.js';
 
 export const triggerAiMove = async (room: Room): Promise<void> => {
     if (room.gameType === 'boss-blast' || room.gameType === 'boss-tornado' || room.gameType === 'boss-thunder' || room.gameType === 'boss-spacetime' || room.gameType === 'boss-tidal' || room.gameType === 'boss-siege') { return; }
@@ -46,10 +40,11 @@ export const triggerAiMove = async (room: Room): Promise<void> => {
         }
     }
     else if (game === 'stance') {
-        const state = room.gameState as { phase: string; handStates: Array<{ hand: string[]; deckSelected: boolean }>; positions: [{ row: number; col: number }, { row: number; col: number }] };
+        const state = room.gameState as { phase: string; handStates: { hand: string[]; deckSelected: boolean }[]; positions: [{ row: number; col: number }, { row: number; col: number }] };
         if (state.phase === 'deck_selection' && !state.handStates[aiIdx].deckSelected) {
             aiData = getStanceAiDeckSelect();
-        } else if (state.phase === 'playing') {
+        }
+        else if (state.phase === 'playing') {
             aiData = getStanceAiMove({ hand: state.handStates[aiIdx].hand as import('./games/stance.js').StanceName[], positions: state.positions, pi: aiIdx });
         }
     }

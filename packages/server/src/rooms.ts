@@ -1,20 +1,8 @@
 import type { WebSocket } from 'ws';
 import type { GameType, Room } from './types.js';
 import { send } from './send.js';
-import * as ttt from './games/tic-tac-toe.js';
-import * as es from './games/emperor-slave.js';
-import * as nine from './games/nine.js';
-import * as mt from './games/mine-texas.js';
-import * as stance from './games/stance.js';
-import * as bossBlast from './games/boss-blast.js';
-import * as bossTornado from './games/boss-tornado.js';
-import * as bossThunder from './games/boss-thunder.js';
-import * as bossSpacetime from './games/boss-spacetime.js';
-import * as bossTidal from './games/boss-tidal.js';
-import * as bossSiege from './games/boss-siege.js';
+import { GAME_MODULES } from './games/registry.js';
 import { triggerAiMove } from './ai.js';
-
-const GAME_MODULES = { 'tic-tac-toe': ttt, 'emperor-slave': es, 'nine': nine, 'mine-texas': mt, 'stance': stance, 'boss-blast': bossBlast, 'boss-tornado': bossTornado, 'boss-thunder': bossThunder, 'boss-spacetime': bossSpacetime, 'boss-tidal': bossTidal, 'boss-siege': bossSiege };
 
 const rooms = new Map<string, Room>();
 const wsToRoom = new Map<unknown, string>();
@@ -31,6 +19,8 @@ const newRoomBase = () => ({
 });
 
 export const handleCreate = (ws: WebSocket, nickname: string, game: GameType) => {
+    const oldId = wsToRoom.get(ws) as string | undefined;
+    if (oldId) { rooms.delete(oldId); }
     const id = Math.random().toString(36).slice(2, 6).toUpperCase();
     const mod = GAME_MODULES[game];
     const [hostRole] = mod.ROLES;
@@ -47,6 +37,11 @@ export const handleCreate = (ws: WebSocket, nickname: string, game: GameType) =>
 };
 
 export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameType) => {
+    const oldId = wsToRoom.get(ws) as string | undefined;
+    if (oldId) {
+        const old = rooms.get(oldId);
+        if (old && old.status === 'waiting' && old.players.length === 1 && old.players[0].ws === ws) { rooms.delete(oldId); }
+    }
     const id = Math.random().toString(36).slice(2, 6).toUpperCase();
     const mod = GAME_MODULES[game];
     const aiWs = {} as unknown as WebSocket;
@@ -74,6 +69,25 @@ export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameTy
     if (game === 'boss-blast' || game === 'boss-tornado' || game === 'boss-thunder' || game === 'boss-spacetime' || game === 'boss-tidal' || game === 'boss-siege') {
         void triggerAiMove(room);
     }
+};
+
+export const handleAddAi = (ws: WebSocket) => {
+    const roomId = wsToRoom.get(ws) as string | undefined;
+    if (!roomId) { send(ws, { type: 'error', message: '不在房间内' }); return; }
+    const room = rooms.get(roomId);
+    if (!room) { send(ws, { type: 'error', message: '房间不存在' }); return; }
+    if (room.status !== 'waiting') { send(ws, { type: 'error', message: '房间已开始' }); return; }
+    if (room.players.length !== 1) { send(ws, { type: 'error', message: '房间已满' }); return; }
+    if (room.players[0].ws !== ws) { send(ws, { type: 'error', message: '仅房主可添加 AI' }); return; }
+    const mod = GAME_MODULES[room.gameType];
+    const aiWs = {} as unknown as WebSocket;
+    const aiRole = mod.ROLES[1];
+    room.players.push({ ws: aiWs, nickname: 'AI', role: aiRole, isAI: true });
+    wsToRoom.set(aiWs, roomId);
+    room.status = 'playing';
+    const host = room.players[0];
+    send(host.ws, { type: 'game_start', opponentNickname: 'AI', yourRole: host.role, ...getStartData(mod, room) });
+    if (room.gameType === 'stance') { void triggerAiMove(room); }
 };
 
 export const handleJoin = (ws: WebSocket, roomId: string, nickname: string) => {
@@ -204,6 +218,12 @@ export const getRoomList = () =>
             player1Nickname: r.players[0]?.nickname ?? '',
             player2Nickname: r.players[1]?.nickname ?? '',
         }));
+
+export const getRoomById = (id: string) => {
+    const r = rooms.get(id);
+    if (!r || r.status === 'ended') { return null; }
+    return { id: r.id, gameType: r.gameType, status: r.status, player1Nickname: r.players[0]?.nickname ?? '', player2Nickname: r.players[1]?.nickname ?? '' };
+};
 
 export const handleDisconnect = (ws: WebSocket) => {
     const roomId = wsToRoom.get(ws);

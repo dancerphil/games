@@ -133,8 +133,12 @@ const getDirectionArrows = (skill: TidalSkill, extraState: TidalExtraState): Dir
     return arrows;
 };
 
-export const BossTidalPage = ({ initialAction }: { initialAction?: InitialAction }) => (
+export const BossTidalPage = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: { initialAction?: InitialAction; roomId?: string; isCreator?: boolean; isSpectate?: boolean; initialRole?: string }) => (
     <BossBattlePage<TidalSkill, TidalExtraState, TidalGameMessage>
+        roomId={roomId}
+        isCreator={isCreator}
+        isSpectate={isSpectate}
+        initialRole={initialRole}
         initialAction={initialAction}
         config={{
             game: 'boss-tidal',

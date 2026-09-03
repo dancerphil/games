@@ -2,10 +2,10 @@ import type { Pos } from './geometry.js';
 import { eqPos, keepInBounds, manhattan } from './geometry.js';
 
 export interface SkillContext {
-    from: Pos;            // actor position before moving
-    to: Pos;              // actor position after moving (attack is evaluated here)
-    playerIndex: 0 | 1;   // facing orientation
-    opponent: Pos;        // primary target position
+    from: Pos; // actor position before moving
+    to: Pos; // actor position after moving (attack is evaluated here)
+    playerIndex: 0 | 1; // facing orientation
+    opponent: Pos; // primary target position
     state: Record<string, unknown>; // persistent per-actor state for stateful skills
     random: () => number; // [0, 1)
 }
@@ -50,7 +50,7 @@ export type MoveStrategy = 'stationary' | 'toward' | 'hunt';
 const nearest = (candidates: Pos[], target: Pos): Pos =>
     candidates.reduce((best, candidate) => (manhattan(candidate, target) < manhattan(best, target) ? candidate : best));
 
-export interface MoverResolution { from: Pos; to: Pos; aoe: Pos[]; }
+export interface MoverResolution { from: Pos; to: Pos; aoe: Pos[] }
 
 // Resolve a single self-driven mover (most bosses): pick a destination per strategy, then compute its AOE.
 export const resolveMover = (skill: Skill, ctxAtFrom: SkillContext, strategy: MoveStrategy): MoverResolution => {
@@ -60,10 +60,12 @@ export const resolveMover = (skill: Skill, ctxAtFrom: SkillContext, strategy: Mo
     let to: Pos;
     if (strategy === 'stationary') {
         to = ctxAtFrom.from;
-    } else if (strategy === 'hunt') {
+    }
+    else if (strategy === 'hunt') {
         to = candidates.find(candidate => aoeAt(candidate).some(cell => eqPos(cell, ctxAtFrom.opponent)))
             ?? nearest(candidates, ctxAtFrom.opponent);
-    } else {
+    }
+    else {
         to = nearest(candidates, ctxAtFrom.opponent);
     }
     return { from: ctxAtFrom.from, to, aoe: aoeAt(to) };

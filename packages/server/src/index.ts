@@ -7,7 +7,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { GameType } from './types.js';
-import { getRoomList, handleCreate, handleCreateAiRoom, handleDisconnect, handleJoin, handleMove, handleRematch, handleSpectate } from './rooms.js';
+import { getRoomById, getRoomList, handleAddAi, handleCreate, handleCreateAiRoom, handleDisconnect, handleJoin, handleMove, handleRematch, handleSpectate } from './rooms.js';
 import { getRelayRoomList, handleRelayCreate, handleRelayDisconnect, handleRelayJoin, handleRelayMessage } from './relay.js';
 
 const app = new Hono();
@@ -15,11 +15,18 @@ const app = new Hono();
 app.use('*', cors());
 
 app.get('/api/rooms', c => c.json(getRoomList()));
+app.get('/api/rooms/:id', (c) => {
+    const room = getRoomById(c.req.param('id'));
+    if (!room) { return c.json({ error: 'not found' }, 404); }
+    return c.json(room);
+});
 app.get('/api/relay-rooms', c => c.json(getRelayRoomList()));
+app.get('/api/health', c => c.json('healthy'));
 
 app.use('/*', serveStatic({ root: './public' }));
 
 app.get('/*', async (c) => {
+    if (c.req.path.startsWith('/api/') || c.req.path.startsWith('/ws')) { return c.notFound(); }
     const html = await readFile('./public/index.html', 'utf-8');
     return c.html(html);
 });
@@ -41,7 +48,7 @@ const wss = new WebSocketServer({ noServer: true });
 
 const broadcastOnlineCount = () => {
     const msg = JSON.stringify({ type: 'online_count', count: wss.clients.size });
-    wss.clients.forEach(client => {
+    wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) { client.send(msg); } // eslint-disable-line @stylistic/max-statements-per-line
     });
 };
@@ -70,6 +77,9 @@ wss.on('connection', (ws) => {
         }
         else if (msg.type === 'spectate_room' && msg.roomId) {
             handleSpectate(ws, msg.roomId);
+        }
+        else if (msg.type === 'add_ai') {
+            handleAddAi(ws);
         }
         else if (msg.type === 'move') {
             handleMove(ws, msg);

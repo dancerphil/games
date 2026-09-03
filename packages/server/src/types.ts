@@ -1,6 +1,7 @@
 import type { WebSocket } from 'ws';
+import type { GameType } from '@games/shared';
 
-export type GameType = 'tic-tac-toe' | 'emperor-slave' | 'nine' | 'mine-texas' | 'stance' | 'boss-blast' | 'boss-tornado' | 'boss-thunder' | 'boss-spacetime' | 'boss-tidal' | 'boss-siege';
+export type { GameType };
 
 export interface PlayerState {
     ws: WebSocket;

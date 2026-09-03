@@ -1,5 +1,10 @@
 import type { Pos, StanceName } from '@games/shared';
-import { getMoveOptions, getAttackOptions, getHitCells, isNoMove } from '@/game/stanceRules';
+import { STANCES, makeContext, skillAttackTargets, skillHitCells, skillMoveOptions } from '@games/shared';
+const siegeCtx = (pi: number, from: import('@games/shared').Pos, to: import('@games/shared').Pos, opponent: import('@games/shared').Pos) => makeContext({ from, to, playerIndex: pi as 0 | 1, opponent });
+const getMoveOptions = (card: import('@games/shared').StanceName, pos: import('@games/shared').Pos, pi: number): import('@games/shared').Pos[] => skillMoveOptions(STANCES[card], siegeCtx(pi, pos, pos, pos));
+const getAttackOptions = (card: import('@games/shared').StanceName, pos: import('@games/shared').Pos, pi: number, originalPos?: import('@games/shared').Pos): import('@games/shared').Pos[] => skillAttackTargets(STANCES[card], siegeCtx(pi, originalPos ?? pos, pos, pos));
+const getHitCells = (card: import('@games/shared').StanceName, attackAt: import('@games/shared').Pos | null, pos: import('@games/shared').Pos, pi: number, originalPos?: import('@games/shared').Pos): import('@games/shared').Pos[] => skillHitCells(STANCES[card], siegeCtx(pi, originalPos ?? pos, pos, pos), attackAt);
+const isNoMove = (card: import('@games/shared').StanceName): boolean => STANCES[card].move(makeContext()).length === 0;
 import type { InitialAction } from '../../hooks/useGameRoom';
 import { BossBattlePage } from '../boss/BossBattlePage';
 
@@ -44,7 +49,7 @@ interface SiegeGameMessage {
     bossSkill?: SiegeSkill;
     nextBossSkill?: SiegeSkill;
     bossPositions?: Pos[];
-    bossMovements?: Array<{ movedFrom: Pos; movedTo: Pos }>;
+    bossMovements?: { movedFrom: Pos; movedTo: Pos }[];
     myCard?: StanceName;
     myMovedTo?: Pos;
     myMovedFrom?: Pos;
@@ -77,8 +82,12 @@ const getWarningHighlights = (skill: SiegeSkill, _bossPos: Pos, _playerPos: Pos,
     return dedup(allHitCells);
 };
 
-export const BossSiegePage = ({ initialAction }: { initialAction?: InitialAction }) => (
+export const BossSiegePage = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: { initialAction?: InitialAction; roomId?: string; isCreator?: boolean; isSpectate?: boolean; initialRole?: string }) => (
     <BossBattlePage<SiegeSkill, SiegeExtraState, SiegeGameMessage>
+        roomId={roomId}
+        isCreator={isCreator}
+        isSpectate={isSpectate}
+        initialRole={initialRole}
         initialAction={initialAction}
         config={{
             game: 'boss-siege',

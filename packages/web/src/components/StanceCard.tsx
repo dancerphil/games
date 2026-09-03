@@ -1,6 +1,10 @@
 import { Badge, Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import type { Pos, StanceName } from '@games/shared';
-import { getAttackOptions, getHitCells, getMoveOptions } from '@/game/stanceRules';
+import { STANCES, makeContext, skillAttackTargets, skillHitCells, skillMoveOptions } from '@games/shared';
+const stanceCardCtx = (pi: number, from: import('@games/shared').Pos, to: import('@games/shared').Pos, opponent: import('@games/shared').Pos) => makeContext({ from, to, playerIndex: pi as 0 | 1, opponent });
+const getMoveOptions = (card: import('@games/shared').StanceName, pos: import('@games/shared').Pos, pi: number): import('@games/shared').Pos[] => skillMoveOptions(STANCES[card], stanceCardCtx(pi, pos, pos, pos));
+const getAttackOptions = (card: import('@games/shared').StanceName, pos: import('@games/shared').Pos, pi: number, originalPos?: import('@games/shared').Pos): import('@games/shared').Pos[] => skillAttackTargets(STANCES[card], stanceCardCtx(pi, originalPos ?? pos, pos, pos));
+const getHitCells = (card: import('@games/shared').StanceName, attackAt: import('@games/shared').Pos | null, pos: import('@games/shared').Pos, pi: number, originalPos?: import('@games/shared').Pos): import('@games/shared').Pos[] => skillHitCells(STANCES[card], stanceCardCtx(pi, originalPos ?? pos, pos, pos), attackAt);
 import {
     areaOfEffectBackground,
     attackBackground,

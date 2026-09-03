@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Button, Group, SimpleGrid, Stack, Text } from '@mantine/core';
 import type { Pos, StanceName } from '@games/shared';
 import { ALL_STANCES, eqPos } from '@games/shared';
-import { getAttackOptions, getHitCells, getMoveOptions, isCharge } from '@/game/stanceRules';
+import { getMoveOptions, getAttackOptions, getHitCells, isCharge } from '@/game/stanceHelpers';
 import {
     actionOrange,
     areaOfEffectBackground,
@@ -17,8 +17,10 @@ import {
     warningBackground,
 } from '@/constants/gameColors';
 import { GameConnecting } from '../../components/GameConnecting';
+import { RoomWaiting } from '../../components/RoomWaiting';
 import { RematchSection } from '../../components/RematchSection';
 import { StanceCard, STANCE_LABELS, getStanceCooldown } from '../../components/StanceCard';
+import { DeckSelector } from '../../components/DeckSelector';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { GameType, InitialAction } from '../../hooks/useGameRoom';
 import { useNickname } from '../../hooks/useNickname';
@@ -29,7 +31,8 @@ const loadDeckPreset = (game: string): StanceName[] | null => {
     try {
         const saved = localStorage.getItem(deckPresetKey(game));
         return saved ? JSON.parse(saved) : null;
-    } catch { return null; }
+    }
+    catch { return null; }
 };
 
 const saveDeckPreset = (game: string, deck: StanceName[]) => {
@@ -266,15 +269,20 @@ interface BossBattleConfig<TBossSkill extends string, TExtraState, TBossMessage 
     getBoss2Pos?: (extraState: TExtraState) => Pos | null;
     getBoss2AnimData?: (msg: TBossMessage) => { movedFrom: Pos; movedTo: Pos } | null;
     getAllBossPositions?: (extraState: TExtraState) => Pos[];
-    getAllBossAnimData?: (msg: TBossMessage) => Array<{ movedFrom: Pos; movedTo: Pos }>;
+    getAllBossAnimData?: (msg: TBossMessage) => { movedFrom: Pos; movedTo: Pos }[];
 }
 
 interface BossBattlePageProps<TBossSkill extends string, TExtraState, TBossMessage extends BossBattleMessage<TBossSkill>> {
+    roomId?: string;
+    isCreator?: boolean;
+    isSpectate?: boolean;
+    initialRole?: string;
     initialAction?: InitialAction;
     config: BossBattleConfig<TBossSkill, TExtraState, TBossMessage>;
 }
 
 export const BossBattlePage = <TBossSkill extends string, TExtraState, TBossMessage extends BossBattleMessage<TBossSkill>>({
+    roomId, isCreator, isSpectate, initialRole,
     initialAction,
     config,
 }: BossBattlePageProps<TBossSkill, TExtraState, TBossMessage>) => {
@@ -396,7 +404,8 @@ export const BossBattlePage = <TBossSkill extends string, TExtraState, TBossMess
                 if (msg.gameOver) {
                     setSubPhase('ended');
                     setGameEndedRef.current();
-                } else {
+                }
+                else {
                     setHand(msg.hand as StanceName[]);
                     setDiscard(msg.discard as StanceName[]);
                     setBossSkill(msg.nextBossSkill!);
@@ -407,10 +416,10 @@ export const BossBattlePage = <TBossSkill extends string, TExtraState, TBossMess
                 }
             }, 700);
         }, 700);
-    }, [config, extraState]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [config, extraState]);
 
-    const { connected, phase, send, rematch, setGameEnded, rematchRequests, totalScores } =
-        useGameRoom<TBossMessage>({ game: config.game, nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
+    const { connected, phase, roomId: bossRoomId, send, rematch, addAi, setGameEnded, rematchRequests, totalScores } =
+        useGameRoom<TBossMessage>({ game: config.game, roomId, isCreator, isSpectate, initialRole, nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
 
     setGameEndedRef.current = setGameEnded;
 
@@ -429,7 +438,7 @@ export const BossBattlePage = <TBossSkill extends string, TExtraState, TBossMess
     }, [deckChoice, config.game, send]);
 
     const toggleStance = useCallback((stance: StanceName) => {
-        setDeckChoice(previousChoice => {
+        setDeckChoice((previousChoice) => {
             const nextChoice = new Set(previousChoice);
             if (nextChoice.has(stance)) { nextChoice.delete(stance); }
             else if (nextChoice.size < 5) { nextChoice.add(stance); }
@@ -453,10 +462,12 @@ export const BossBattlePage = <TBossSkill extends string, TExtraState, TBossMess
                 send({ type: 'move', card, moveTo: positions[0], attackAt: null });
                 setSubmitted(true);
                 setActionStep(null);
-            } else {
+            }
+            else {
                 setActionStep('attack');
             }
-        } else {
+        }
+        else {
             setActionStep('move');
         }
     }, [submitted, actionStep, positions, send]);
@@ -470,7 +481,8 @@ export const BossBattlePage = <TBossSkill extends string, TExtraState, TBossMess
                 send({ type: 'move', card: selectedCard, moveTo: pos, attackAt: null });
                 setSubmitted(true);
                 setActionStep(null);
-            } else {
+            }
+            else {
                 setActionStep('attack');
             }
             return;
@@ -530,6 +542,7 @@ export const BossBattlePage = <TBossSkill extends string, TExtraState, TBossMess
     const rematchHint = rematchRequests.myRequest ? '你已请求再来一局…' : null;
 
     if (!connected || phase === 'lobby') { return <GameConnecting />; }
+    if (phase === 'waiting') { return <RoomWaiting roomId={bossRoomId || roomId || ''} onAddAi={addAi} addAiLabel="添加 Boss" />; }
 
     const playerWins = totalScores.p1Wins;
     const bossWins = totalScores.p2Wins;
@@ -551,24 +564,16 @@ export const BossBattlePage = <TBossSkill extends string, TExtraState, TBossMess
             );
         }
         return (
-            <Stack gap="sm" maw={760} w="100%">
-                <Text size="sm">选择 5 张招式组成套牌（已选 {deckChoice.size}/5）</Text>
-                <SimpleGrid cols={{ base: 2, sm: 3, lg: 4 }} spacing="sm">
-                    {ALL_STANCES.map(stance => (
-                        <StanceCard
-                            key={stance}
-                            stance={stance}
-                            selected={deckChoice.has(stance)}
-                            disabled={!deckChoice.has(stance) && deckChoice.size >= 5}
-                            onClick={() => { toggleStance(stance); }}
-                        />
-                    ))}
-                </SimpleGrid>
-                <Group gap="sm" mt="sm">
-                    <Button disabled={deckChoice.size !== 5} onClick={saveAndStart}>保存并开始挑战</Button>
-                    {deckPreset && <Button variant="subtle" color="gray" onClick={() => setEditingDeck(false)}>取消</Button>}
-                </Group>
-            </Stack>
+            <DeckSelector
+                selected={deckChoice}
+                onToggle={toggleStance}
+                action={(
+                    <Group gap="sm" mt="sm">
+                        <Button disabled={deckChoice.size !== 5} onClick={saveAndStart}>保存并开始挑战</Button>
+                        {deckPreset && <Button variant="subtle" color="gray" onClick={() => setEditingDeck(false)}>取消</Button>}
+                    </Group>
+                )}
+            />
         );
     }
 
@@ -644,7 +649,7 @@ export const BossBattlePage = <TBossSkill extends string, TExtraState, TBossMess
                     <Text size="sm">{hint}</Text>
                     {(hand.length > 0 || discard.length > 0) && (
                         <SimpleGrid cols={{ base: 2, sm: 3, md: 5 }} spacing="sm" w="100%" maw={760}>
-                            {ALL_STANCES.filter(stance => [...hand, ...discard].includes(stance)).map(stance => {
+                            {ALL_STANCES.filter(stance => [...hand, ...discard].includes(stance)).map((stance) => {
                                 const cooldown = getStanceCooldown(stance, discard);
                                 const isDisabled = submitted || actionStep !== 'card' || cooldown > 0 || animPhase !== 'idle';
                                 return (
@@ -664,11 +669,16 @@ export const BossBattlePage = <TBossSkill extends string, TExtraState, TBossMess
                         <Group gap="xs">
                             <Button size="xs" variant="subtle" onClick={cancelAction}>↩ 取消</Button>
                             {actionStep === 'attack' && (
-                                <Button size="xs" variant="subtle" onClick={() => {
-                                    send({ type: 'move', card: selectedCard!, moveTo: previewPos ?? positions[0], attackAt: null });
-                                    setSubmitted(true);
-                                    setActionStep(null);
-                                }}>跳过攻击</Button>
+                                <Button
+                                    size="xs"
+                                    variant="subtle"
+                                    onClick={() => {
+                                        send({ type: 'move', card: selectedCard!, moveTo: previewPos ?? positions[0], attackAt: null });
+                                        setSubmitted(true);
+                                        setActionStep(null);
+                                    }}
+                                >跳过攻击
+                                </Button>
                             )}
                         </Group>
                     )}

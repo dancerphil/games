@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { notifications } from '@mantine/notifications';
+import type { GameType } from '@games/shared';
 import { useAppStore } from '../store';
 
-export type GameType = 'tic-tac-toe' | 'emperor-slave' | 'nine' | 'mine-texas' | 'stance' | 'boss-blast' | 'boss-tornado' | 'boss-thunder' | 'boss-spacetime' | 'boss-tidal' | 'boss-siege';
+export type { GameType };
 export type Phase = 'lobby' | 'waiting' | 'playing' | 'spectating' | 'ended';
 
 export interface InitialAction {
@@ -16,9 +17,13 @@ interface Options<TGameMsg> {
     onGameMessage: (msg: TGameMsg) => void;
     onReset?: () => void;
     initialAction?: InitialAction;
+    roomId?: string;
+    isCreator?: boolean;
+    isSpectate?: boolean;
+    initialRole?: string;
 }
 
-export const useGameRoom = <TGameMsg>({ game, nickname, onGameMessage, onReset, initialAction }: Options<TGameMsg>) => {
+export const useGameRoom = <TGameMsg>({ game, nickname, onGameMessage, onReset, initialAction, roomId: propRoomId, isCreator, isSpectate, initialRole }: Options<TGameMsg>) => {
     const { connected, send, setMessageHandler } = useAppStore();
     const [phase, setPhase] = useState<Phase>('lobby');
     const [roomId, setRoomId] = useState('');
@@ -89,7 +94,7 @@ export const useGameRoom = <TGameMsg>({ game, nickname, onGameMessage, onReset, 
         else {
             onGameMessageRef.current(raw as unknown as TGameMsg);
         }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         setMessageHandler(handleMessage);
@@ -97,16 +102,38 @@ export const useGameRoom = <TGameMsg>({ game, nickname, onGameMessage, onReset, 
     }, [setMessageHandler, handleMessage]);
 
     useEffect(() => {
+        if (isCreator && propRoomId) {
+            setRoomId(propRoomId);
+            if (initialRole) { setRole(initialRole); }
+            if (game.startsWith('boss')) {
+                setPhase('playing');
+            }
+            else {
+                setPhase('waiting');
+            }
+            return;
+        }
+        if (propRoomId) {
+            if (sentRef.current) { return; }
+            if (!connected) { return; }
+            if (!isSpectate && !nickname) { return; }
+            sentRef.current = true;
+            if (isSpectate) { send({ type: 'spectate_room', roomId: propRoomId }); }
+            else { send({ type: 'join_room', roomId: propRoomId, nickname }); }
+            setRoomId(propRoomId);
+            return;
+        }
         if (!connected || sentRef.current || !initialAction || !nickname) { return; }
         sentRef.current = true;
         if (initialAction.type === 'create') { send({ type: 'create_room', nickname, game }); } // eslint-disable-line @stylistic/max-statements-per-line
         else if (initialAction.type === 'create_ai') { send({ type: 'create_ai_room', nickname, game }); } // eslint-disable-line @stylistic/max-statements-per-line
         else if (initialAction.type === 'join' && initialAction.roomId) { send({ type: 'join_room', roomId: initialAction.roomId, nickname }); } // eslint-disable-line @stylistic/max-statements-per-line
         else if (initialAction.type === 'spectate' && initialAction.roomId) { send({ type: 'spectate_room', roomId: initialAction.roomId }); } // eslint-disable-line @stylistic/max-statements-per-line
-    }, [connected, nickname]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [connected, nickname, propRoomId, isCreator, isSpectate]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const rematch = useCallback(() => { send({ type: 'rematch' }); }, [send]); // eslint-disable-line @stylistic/max-statements-per-line
+    const addAi = useCallback(() => { send({ type: 'add_ai' }); }, [send]); // eslint-disable-line @stylistic/max-statements-per-line
     const setGameEnded = useCallback(() => { setPhase('ended'); }, []); // eslint-disable-line @stylistic/max-statements-per-line
 
-    return { connected, phase, roomId, role, opponentNickname, spectateNicknames, send, rematch, setGameEnded, rematchRequests, totalScores, myIndex };
+    return { connected, phase, roomId, role, opponentNickname, spectateNicknames, send, rematch, addAi, setGameEnded, rematchRequests, totalScores, myIndex };
 };

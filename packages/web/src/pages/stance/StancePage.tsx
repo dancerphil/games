@@ -2,7 +2,8 @@ import { useCallback, useRef, useState } from 'react';
 import { Button, Group, SimpleGrid, Stack, Text } from '@mantine/core';
 import type { Pos, StanceName } from '@games/shared';
 import { ALL_STANCES, eqPos } from '@games/shared';
-import { getAttackOptions, getHitCells, getMoveOptions, isCharge } from '@/game/stanceRules';
+import { useNavigate } from 'react-router';
+import { getMoveOptions, getHitCells, getAttackOptions, isCharge } from '@/game/stanceHelpers';
 import {
     actionOrange,
     areaOfEffectBackground,
@@ -20,10 +21,12 @@ import {
 import { GameConnecting } from '../../components/GameConnecting';
 import { RematchSection } from '../../components/RematchSection';
 import { StanceCard, STANCE_LABELS, getStanceCooldown } from '../../components/StanceCard';
+import { DeckSelector } from '../../components/DeckSelector';
 import { RoomWaiting } from '../../components/RoomWaiting';
 import { useGameRoom } from '../../hooks/useGameRoom';
 import type { InitialAction } from '../../hooks/useGameRoom';
 import { useNickname } from '../../hooks/useNickname';
+import { useAppStore } from '../../store';
 
 // Board component
 interface BoardProps {
@@ -111,9 +114,9 @@ interface GameMsg {
     state?: { positions: [Pos, Pos]; hp: [number, number] };
 }
 
-interface LastResult { myCard: StanceName; opponentCard: StanceName; iHitOpponent: boolean; opponentHitMe: boolean; myDamage: number; opponentDamage: number; myPoisonDamage: number; opponentPoisonDamage: number; }
+interface LastResult { myCard: StanceName; opponentCard: StanceName; iHitOpponent: boolean; opponentHitMe: boolean; myDamage: number; opponentDamage: number; myPoisonDamage: number; opponentPoisonDamage: number }
 
-export const StancePage = ({ initialAction }: { initialAction?: InitialAction }) => {
+export const StancePage = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: { initialAction?: InitialAction; roomId?: string; isCreator?: boolean; isSpectate?: boolean; initialRole?: string }) => {
     const [nickname] = useNickname();
 
     const [subPhase, setSubPhase] = useState<'deck_selection' | 'waiting_deck' | 'playing' | 'ended'>('deck_selection');
@@ -226,12 +229,33 @@ export const StancePage = ({ initialAction }: { initialAction?: InitialAction })
         }
     }, []);
 
-    const { connected, phase, roomId, role, opponentNickname, spectateNicknames, send, rematch, setGameEnded, rematchRequests, totalScores, myIndex } =
-        useGameRoom<GameMsg>({ game: 'stance', nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
+    const { connected, phase, roomId: stateRoomId, role, opponentNickname, spectateNicknames, send, rematch, addAi, setGameEnded, rematchRequests, totalScores, myIndex } =
+        useGameRoom<GameMsg>({ game: 'stance', roomId, isCreator, isSpectate, initialRole, nickname, onGameMessage: handleGameMessage, onReset: resetGame, initialAction });
 
     const pi: 0 | 1 = role === 'player1' ? 1 : 0;
     piRef.current = pi;
     setGameEndedRef.current = setGameEnded;
+
+    const navigate = useNavigate();
+    const { send: globalSend, setMessageHandler } = useAppStore();
+    const handleAddBoss = (bossKey: string) => {
+        let done = false;
+        const handler = (msg: Record<string, unknown>) => {
+            if (done) { return; }
+            if (msg['type'] === 'room_created') {
+                done = true;
+                setMessageHandler(null);
+                void navigate(`/room/${msg['roomId'] as string}`, { state: { isCreator: true, yourRole: msg['yourRole'] as string } });
+            }
+            else if (msg['type'] === 'error') {
+                done = true;
+                setMessageHandler(null);
+            }
+        };
+        setMessageHandler(handler);
+        globalSend({ type: 'create_ai_room', nickname, game: bossKey });
+        setTimeout(() => { if (!done) { setMessageHandler(null); } }, 5000);
+    };
 
     const toggleStance = useCallback((s: StanceName) => {
         setDeckChoice((prev) => {
@@ -322,7 +346,22 @@ export const StancePage = ({ initialAction }: { initialAction?: InitialAction })
                 : '对手请求再来一局';
 
     if (!connected || phase === 'lobby') { return <GameConnecting />; }
-    if (phase === 'waiting') { return <RoomWaiting roomId={roomId} />; }
+    if (phase === 'waiting') {
+        return (
+            <Stack align="center" gap="md">
+                <RoomWaiting roomId={stateRoomId || roomId || ''} onAddAi={addAi} />
+                <Text size="sm" c="dimmed">或选择 Boss 挑战</Text>
+                <Group gap="xs" justify="center">
+                    <Button size="xs" variant="light" onClick={() => { handleAddBoss('boss-blast'); }}>爆破</Button>
+                    <Button size="xs" variant="light" onClick={() => { handleAddBoss('boss-tornado'); }}>龙卷</Button>
+                    <Button size="xs" variant="light" onClick={() => { handleAddBoss('boss-thunder'); }}>雷神</Button>
+                    <Button size="xs" variant="light" onClick={() => { handleAddBoss('boss-spacetime'); }}>时空</Button>
+                    <Button size="xs" variant="light" onClick={() => { handleAddBoss('boss-tidal'); }}>潮汐</Button>
+                    <Button size="xs" variant="light" onClick={() => { handleAddBoss('boss-siege'); }}>围攻</Button>
+                </Group>
+            </Stack>
+        );
+    }
 
     if (phase === 'spectating') {
         return (
@@ -346,25 +385,19 @@ export const StancePage = ({ initialAction }: { initialAction?: InitialAction })
 
     if (subPhase === 'deck_selection' || subPhase === 'waiting_deck') {
         return (
-            <Stack gap="sm" maw={760} w="100%">
-                <Text size="sm">选择 5 张招式组成套牌（已选 {deckChoice.size}/5）</Text>
-                <SimpleGrid cols={{ base: 2, sm: 3, lg: 4 }} spacing="sm">
-                    {ALL_STANCES.map(s => (
-                        <StanceCard
-                            key={s}
-                            stance={s}
-                            playerIndex={pi}
-                            selected={deckChoice.has(s)}
-                            disabled={subPhase === 'waiting_deck' || (!deckChoice.has(s) && deckChoice.size >= 5)}
-                            onClick={() => { toggleStance(s); }}
-                        />
-                    ))}
-                </SimpleGrid>
-                {subPhase === 'deck_selection' && (
-                    <Button disabled={deckChoice.size !== 5} onClick={confirmDeck} mt="sm">确认套牌</Button>
-                )}
-                {subPhase === 'waiting_deck' && <Text c="dimmed" size="sm">已选定套牌，等待对手…</Text>}
-            </Stack>
+            <DeckSelector
+                selected={deckChoice}
+                onToggle={toggleStance}
+                disabled={s => subPhase === 'waiting_deck' || (!deckChoice.has(s) && deckChoice.size >= 5)}
+                playerIndex={pi}
+                action={
+                    subPhase === 'deck_selection' ? (
+                        <Button disabled={deckChoice.size !== 5} onClick={confirmDeck}>确认套牌</Button>
+                    ) : (
+                        <Text c="dimmed" size="sm">已选定套牌，等待对手…</Text>
+                    )
+                }
+            />
         );
     }
 
@@ -438,7 +471,7 @@ export const StancePage = ({ initialAction }: { initialAction?: InitialAction })
                         <Stack gap={6} w="100%" maw={760}>
                             <Text size="xs" c="dimmed">对手：</Text>
                             <SimpleGrid cols={{ base: 2, sm: 3, md: 5 }} spacing="sm">
-                                {ALL_STANCES.filter(s => [...opponentHand, ...opponentDiscard].includes(s)).map((s) => (
+                                {ALL_STANCES.filter(s => [...opponentHand, ...opponentDiscard].includes(s)).map(s => (
                                     <StanceCard
                                         key={s}
                                         stance={s}
