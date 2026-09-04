@@ -1,0 +1,9 @@
+[project]
+name = "gomoku-engine"
+version = "0.1.0"
+description = "Gomoku GTP engine - MCTS + heuristic model"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.uv]
+managed = true

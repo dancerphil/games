@@ -10,6 +10,7 @@ import * as bossSpacetime from './boss-spacetime.js';
 import * as bossTidal from './boss-tidal.js';
 import * as bossSiege from './boss-siege.js';
 import * as poetryHeart from './poetry-heart.js';
+import * as gomoku from './gomoku.js';
 
 export const GAME_MODULES = {
     'tic-tac-toe': ttt,
@@ -24,4 +25,5 @@ export const GAME_MODULES = {
     'boss-tidal': bossTidal,
     'boss-siege': bossSiege,
     'poetry-heart': poetryHeart,
+    'gomoku': gomoku,
 } as const;

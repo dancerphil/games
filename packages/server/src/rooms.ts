@@ -42,7 +42,7 @@ export const handleCreate = (ws: WebSocket, nickname: string, game: GameType) =>
     }
 };
 
-export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameType) => {
+export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameType, modelId?: string) => {
     const oldId = wsToRoom.get(ws) as string | undefined;
     if (oldId) {
         const old = rooms.get(oldId);
@@ -54,6 +54,7 @@ export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameTy
     const aiNickname = 'AI';
     const humanRole = mod.ROLES[0];
     const aiRole = mod.ROLES[1];
+    const init = game === 'gomoku' ? (mod.initState as (p: { modelId?: string }) => unknown)({ modelId: modelId ?? 'heuristic-v1' }) : mod.initState();
     const room: Room = {
         id, gameType: game, status: 'playing',
         players: [
@@ -61,7 +62,7 @@ export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameTy
             { ws: aiWs, nickname: aiNickname, role: aiRole, isAI: true },
         ],
         spectators: [],
-        gameState: mod.initState(),
+        gameState: init,
         ...newRoomBase(),
     };
     rooms.set(id, room);
@@ -69,7 +70,7 @@ export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameTy
     wsToRoom.set(aiWs, id);
     send(ws, { type: 'room_created', roomId: id, yourRole: humanRole });
     send(ws, { type: 'game_start', opponentNickname: aiNickname, yourRole: humanRole, ...getStartData(mod, room) });
-    if (game === 'stance') {
+    if (game === 'stance' || game === 'gomoku' || game === 'tic-tac-toe' || game === 'emperor-slave' || game === 'nine' || game === 'mine-texas') {
         void triggerAiMove(room);
     }
     if (game === 'boss-blast' || game === 'boss-tornado' || game === 'boss-thunder' || game === 'boss-spacetime' || game === 'boss-tidal' || game === 'boss-siege') {
@@ -93,7 +94,7 @@ export const handleAddAi = (ws: WebSocket) => {
     room.status = 'playing';
     const host = room.players[0];
     send(host.ws, { type: 'game_start', opponentNickname: 'AI', yourRole: host.role, ...getStartData(mod, room) });
-    if (room.gameType === 'stance') { void triggerAiMove(room); }
+    if (room.gameType === 'stance' || room.gameType === 'gomoku') { void triggerAiMove(room); }
 };
 
 export const handleJoin = (ws: WebSocket, roomId: string, nickname: string) => {
@@ -142,6 +143,14 @@ export const handleSpectate = (ws: WebSocket, roomId: string) => {
     });
 };
 
+export const handleSetGomokuModel = (ws: WebSocket, modelId: string) => {
+    const roomId = wsToRoom.get(ws) as string | undefined;
+    if (!roomId) return;
+    const room = rooms.get(roomId);
+    if (!room || room.gameType !== 'gomoku') return;
+    (room.gameState as { modelId: string }).modelId = modelId;
+};
+
 const updateScores = (room: Room) => {
     const result = GAME_MODULES[room.gameType].getResult(room);
     if (result === 'draw') {
@@ -161,7 +170,13 @@ const startRematch = (room: Room) => {
         p0.role = p1.role;
         p1.role = temp;
     }
-    room.gameState = mod.initState();
+    if (room.gameType === 'gomoku') {
+        const prev = room.gameState as { modelId?: string };
+        room.gameState = (mod.initState as (p: { modelId?: string }) => unknown)({ modelId: prev.modelId ?? 'heuristic-v1' });
+    }
+    else {
+        room.gameState = mod.initState();
+    }
     room.status = 'playing';
     room.rematchRequests = [false, false];
     room.players.forEach((p) => {
@@ -170,7 +185,7 @@ const startRematch = (room: Room) => {
     room.spectators.forEach((s) => {
         send(s, { type: 'spectate_update', state: mod.getSpectateState(room) });
     });
-    if (room.gameType === 'stance' && room.players.some(p => p.isAI)) {
+    if ((room.gameType === 'stance' || room.gameType === 'gomoku') && room.players.some(p => p.isAI)) {
         void triggerAiMove(room);
     }
 };

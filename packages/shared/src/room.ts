@@ -1,1 +1,1 @@
-export type GameType = 'tic-tac-toe' | 'emperor-slave' | 'nine' | 'mine-texas' | 'stance' | 'boss-blast' | 'boss-tornado' | 'boss-thunder' | 'boss-spacetime' | 'boss-tidal' | 'boss-siege' | 'poetry-heart';
+export type GameType = 'tic-tac-toe' | 'emperor-slave' | 'nine' | 'mine-texas' | 'stance' | 'boss-blast' | 'boss-tornado' | 'boss-thunder' | 'boss-spacetime' | 'boss-tidal' | 'boss-siege' | 'poetry-heart' | 'gomoku';

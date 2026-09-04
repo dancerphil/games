@@ -7,8 +7,9 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { GameType } from './types.js';
-import { getRoomById, getRoomList, handleAddAi, handleCreate, handleCreateAiRoom, handleDisconnect, handleJoin, handleMove, handleRematch, handleSpectate } from './rooms.js';
+import { getRoomById, getRoomList, handleAddAi, handleCreate, handleCreateAiRoom, handleDisconnect, handleJoin, handleMove, handleRematch, handleSetGomokuModel, handleSpectate } from './rooms.js';
 import { getRelayRoomList, handleRelayCreate, handleRelayDisconnect, handleRelayJoin, handleRelayMessage } from './relay.js';
+import { gomokuEngine } from './games/gomoku-engine.js';
 
 const app = new Hono();
 
@@ -21,7 +22,11 @@ app.get('/api/rooms/:id', (c) => {
     return c.json(room);
 });
 app.get('/api/relay-rooms', c => c.json(getRelayRoomList()));
+app.get('/api/gomoku/models', async c => c.json(await gomokuEngine.listModels()));
 app.get('/api/health', c => c.json('healthy'));
+
+gomokuEngine.start();
+gomokuEngine.ensureReady().catch(e => console.error('[gomoku-engine] init failed', e));
 
 app.use('/*', serveStatic({ root: './public' }));
 
@@ -56,7 +61,7 @@ const broadcastOnlineCount = () => {
 wss.on('connection', (ws) => {
     broadcastOnlineCount();
     ws.on('message', (data) => {
-        const msg = JSON.parse(data.toString()) as { type: string; nickname?: string; roomId?: string; game?: GameType; payload?: unknown };
+        const msg = JSON.parse(data.toString()) as { type: string; nickname?: string; roomId?: string; game?: GameType; payload?: unknown; modelId?: string };
         if (msg.type === 'relay_create') {
             handleRelayCreate(ws);
         }
@@ -70,7 +75,7 @@ wss.on('connection', (ws) => {
             handleCreate(ws, msg.nickname, msg.game);
         }
         else if (msg.type === 'create_ai_room' && msg.nickname && msg.game) {
-            handleCreateAiRoom(ws, msg.nickname, msg.game);
+            handleCreateAiRoom(ws, msg.nickname, msg.game, msg.modelId);
         }
         else if (msg.type === 'join_room' && msg.roomId && msg.nickname) {
             handleJoin(ws, msg.roomId, msg.nickname);
@@ -83,6 +88,9 @@ wss.on('connection', (ws) => {
         }
         else if (msg.type === 'move') {
             handleMove(ws, msg);
+        }
+        else if (msg.type === 'set_model' && msg.modelId) {
+            handleSetGomokuModel(ws, msg.modelId);
         }
         else if (msg.type === 'rematch') {
             handleRematch(ws);

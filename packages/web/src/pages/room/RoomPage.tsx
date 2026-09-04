@@ -14,6 +14,7 @@ import { BossSpacetimePage } from '../boss-spacetime/BossSpacetimePage';
 import { BossTidalPage } from '../boss-tidal/BossTidalPage';
 import { BossSiegePage } from '../boss-siege/BossSiegePage';
 import { PoetryHeartPage } from '../poetry-heart/PoetryHeartPage';
+import { Gomoku } from '../gomoku/Gomoku';
 import type { PoetryHeartState } from '@games/shared';
 
 const GAME_TITLES: Record<GameType, string> = {
@@ -29,6 +30,7 @@ const GAME_TITLES: Record<GameType, string> = {
     'boss-spacetime': 'Boss战',
     'boss-tidal': 'Boss战',
     'boss-siege': 'Boss战',
+    'gomoku': '五子棋',
 };
 
 interface RoomInfo {
@@ -96,6 +98,7 @@ export const RoomPage = () => {
             {roomInfo.gameType === 'boss-spacetime' && <BossSpacetimePage {...gameProps} />}
             {roomInfo.gameType === 'boss-tidal' && <BossTidalPage {...gameProps} />}
             {roomInfo.gameType === 'boss-siege' && <BossSiegePage {...gameProps} />}
+            {roomInfo.gameType === 'gomoku' && <Gomoku {...gameProps} />}
         </Stack>
     );
 };

@@ -9,6 +9,7 @@ export type Phase = 'lobby' | 'waiting' | 'playing' | 'spectating' | 'ended';
 export interface InitialAction {
     type: 'create' | 'create_ai' | 'join' | 'spectate';
     roomId?: string;
+    modelId?: string;
 }
 
 interface Options<TGameMsg> {
@@ -127,7 +128,7 @@ export const useGameRoom = <TGameMsg>({ game, nickname, onGameMessage, onReset, 
         if (!connected || sentRef.current || !initialAction || !nickname) { return; }
         sentRef.current = true;
         if (initialAction.type === 'create') { send({ type: 'create_room', nickname, game }); } // eslint-disable-line @stylistic/max-statements-per-line
-        else if (initialAction.type === 'create_ai') { send({ type: 'create_ai_room', nickname, game }); } // eslint-disable-line @stylistic/max-statements-per-line
+        else if (initialAction.type === 'create_ai') { send({ type: 'create_ai_room', nickname, game, modelId: initialAction.modelId }); } // eslint-disable-line @stylistic/max-statements-per-line
         else if (initialAction.type === 'join' && initialAction.roomId) { send({ type: 'join_room', roomId: initialAction.roomId, nickname }); } // eslint-disable-line @stylistic/max-statements-per-line
         else if (initialAction.type === 'spectate' && initialAction.roomId) { send({ type: 'spectate_room', roomId: initialAction.roomId }); } // eslint-disable-line @stylistic/max-statements-per-line
     }, [connected, nickname, propRoomId, isCreator, isSpectate]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -4,6 +4,7 @@ import { getAiMove as getEsAiMove } from './games/emperor-slave-ai.js';
 import { getAiMove as getNineAiMove } from './games/nine-ai.js';
 import { getAiMove as getMtAiMove } from './games/mine-texas-ai.js';
 import { getAiDeckSelect as getStanceAiDeckSelect, getAiMove as getStanceAiMove } from './games/stance-ai.js';
+import { gomokuEngine } from './games/gomoku-engine.js';
 import { GAME_MODULES } from './games/registry.js';
 
 export const triggerAiMove = async (room: Room): Promise<void> => {
@@ -47,6 +48,11 @@ export const triggerAiMove = async (room: Room): Promise<void> => {
         else if (state.phase === 'playing') {
             aiData = getStanceAiMove({ hand: state.handStates[aiIdx].hand as import('./games/stance.js').StanceName[], positions: state.positions, pi: aiIdx });
         }
+    }
+    else if (game === 'gomoku') {
+        const state = room.gameState as { board: (('black' | 'white') | null)[]; currentTurn: 'black' | 'white'; modelId?: string };
+        const { row, col } = await gomokuEngine.getMove(state.board as (string | null)[], state.currentTurn, (state as { modelId?: string }).modelId ?? 'heuristic-v1');
+        aiData = { row, col };
     }
     if (aiData) {
         const ended = GAME_MODULES[game].handleMove(room, aiPlayer.ws, aiData);
