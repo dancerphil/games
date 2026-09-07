@@ -82,8 +82,12 @@ def get_candidates(board):
                     neighbor += 1 / (abs(dr) + abs(dc) or 1)
         scored.append((p, neighbor))
     scored.sort(key=lambda x: -x[1])
-    n = 12 if len(occupied) < 10 else 16
+    n = 20 if len(occupied) < 10 else 24
     return [p for p, _ in scored[:n]]
+
+
+def get_all_empty(board):
+    return [i for i, v in enumerate(board) if v is None]
 
 
 def monte_carlo_score(board, ai_player, evaluate_board, simulations=30):
@@ -181,11 +185,10 @@ def minimax(board, depth, alpha, beta, maximizing, ai_player, evaluate_board, de
         return best
 
 
-def get_best_move(board, ai_player, evaluate_board, time_limit_ms=500):
-    # 1) immediate win / block - same as TS
-    cands_all = get_candidates(board)
-
-    for p in cands_all:
+def get_best_move(board, ai_player, evaluate_board, time_limit_ms=2000):
+    # immediate win/block: scan all empty to not miss due to candidate pruning
+    all_empty = get_all_empty(board)
+    for p in all_empty:
         board[p] = ai_player
         if check_win_at(board, p, ai_player):
             board[p] = None
@@ -193,12 +196,14 @@ def get_best_move(board, ai_player, evaluate_board, time_limit_ms=500):
         board[p] = None
 
     opp = "white" if ai_player == "black" else "black"
-    for p in cands_all:
+    for p in all_empty:
         board[p] = opp
         if check_win_at(board, p, opp):
             board[p] = None
             return p
         board[p] = None
+
+    cands_all = get_candidates(board)
 
     occupied_count = sum(1 for c in board if c is not None)
     if occupied_count == 0:
@@ -208,7 +213,6 @@ def get_best_move(board, ai_player, evaluate_board, time_limit_ms=500):
 
     deadline = time.monotonic() + time_limit_ms / 1000.0
 
-    # root ordering
     root_ordered = []
     for p in cands_all:
         board[p] = ai_player
@@ -217,8 +221,6 @@ def get_best_move(board, ai_player, evaluate_board, time_limit_ms=500):
         root_ordered.append((p, s))
     root_ordered.sort(key=lambda x: -x[1])
 
-    # iterative deepening under time budget
-    # depth schedule matches TS: early game depth 3, else 2; we iterate deeper until deadline
     base_depth = 3 if occupied_count < 4 else 2
     best_pos = root_ordered[0][0]
     best_score = -math.inf

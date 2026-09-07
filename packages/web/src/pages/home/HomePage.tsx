@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Link } from 'react-router';
 import { useNickname } from '../../hooks/useNickname';
 import { useAppStore } from '../../store';
 import { GameCard } from './GameCard';
@@ -34,6 +35,7 @@ export const HomePage = () => {
                 maw={240}
             />
             {onlineCount > 0 && <Text size="sm" c="dimmed">当前在线：{onlineCount} 人</Text>}
+            <Anchor component={Link} to="/battle">五子棋自对弈 →</Anchor>
             <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
                 {GAMES.map(game => (
                     <GameCard

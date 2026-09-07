@@ -11,11 +11,12 @@ BOARD_SIZE = 15
 GTP_COLUMNS = "ABCDEFGHJKLMNOPQRST"
 
 board = [None] * (BOARD_SIZE * BOARD_SIZE)
-current_model = "heuristic-v1"
-time_limit_ms = 500
+current_model = "minimax_heuristic"
+time_limit_ms = 2000
 
 from models import REGISTRY
 from mcts import get_best_move, idx
+from mcts_puct import get_best_move_puct
 
 
 def gtp_to_pos(vertex):
@@ -64,8 +65,12 @@ def do_genmove(color):
     player = "black" if color in ("b", "black") else "white" if color in ("w", "white") else None
     if player is None:
         raise ValueError(f"invalid color {color}")
-    evaluate = REGISTRY[current_model]
-    pos = get_best_move(board, player, evaluate, time_limit_ms=time_limit_ms)
+    model_fn = REGISTRY[current_model]
+    # dispatch: mcts_heuristic / nn-* use PUCT (value,policy), minimax_* use minimax (scalar)
+    if current_model in ("mcts_heuristic",) or current_model.startswith("nn-"):
+        pos = get_best_move_puct(board, player, model_fn, time_limit_ms=time_limit_ms)
+    else:
+        pos = get_best_move(board, player, model_fn, time_limit_ms=time_limit_ms)
     board[pos] = player
     return pos_to_gtp(pos)
 

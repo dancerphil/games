@@ -8,6 +8,7 @@ import { cors } from 'hono/cors';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { GameType } from './types.js';
 import { getRoomById, getRoomList, handleAddAi, handleCreate, handleCreateAiRoom, handleDisconnect, handleJoin, handleMove, handleRematch, handleSetGomokuModel, handleSpectate } from './rooms.js';
+import { handleBattleStart } from './games/battle.js';
 import { getRelayRoomList, handleRelayCreate, handleRelayDisconnect, handleRelayJoin, handleRelayMessage } from './relay.js';
 import { gomokuEngine } from './games/gomoku-engine.js';
 
@@ -91,6 +92,9 @@ wss.on('connection', (ws) => {
         }
         else if (msg.type === 'set_model' && msg.modelId) {
             handleSetGomokuModel(ws, msg.modelId);
+        }
+        else if (msg.type === 'battle_start') {
+            void handleBattleStart(ws, msg);
         }
         else if (msg.type === 'rematch') {
             handleRematch(ws);

@@ -114,7 +114,19 @@ class GomokuEngine {
             await new Promise(r => setTimeout(r, 100));
         }
         await this.command('boardsize 15');
-        await this.command('set_time_limit 500');
+        await this.command('set_time_limit 2000');
+    }
+
+    async setTimeLimit(ms: number) {
+        let release: (() => void) | undefined;
+        const prev = this.serial;
+        this.serial = new Promise<void>(r => { release = r; });
+        await prev;
+        try {
+            await this.command(`set_time_limit ${ms}`);
+        } finally {
+            release!();
+        }
     }
 
     async getMove(board: (string | null)[], player: string, modelId = 'heuristic-v1'): Promise<{ row: number; col: number }> {

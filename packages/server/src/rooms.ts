@@ -54,7 +54,7 @@ export const handleCreateAiRoom = (ws: WebSocket, nickname: string, game: GameTy
     const aiNickname = 'AI';
     const humanRole = mod.ROLES[0];
     const aiRole = mod.ROLES[1];
-    const init = game === 'gomoku' ? (mod.initState as (p: { modelId?: string }) => unknown)({ modelId: modelId ?? 'heuristic-v1' }) : mod.initState();
+    const init = game === 'gomoku' ? (mod.initState as (p: { modelId?: string }) => unknown)({ modelId: modelId ?? 'minimax_heuristic' }) : mod.initState();
     const room: Room = {
         id, gameType: game, status: 'playing',
         players: [
@@ -172,7 +172,7 @@ const startRematch = (room: Room) => {
     }
     if (room.gameType === 'gomoku') {
         const prev = room.gameState as { modelId?: string };
-        room.gameState = (mod.initState as (p: { modelId?: string }) => unknown)({ modelId: prev.modelId ?? 'heuristic-v1' });
+        room.gameState = (mod.initState as (p: { modelId?: string }) => unknown)({ modelId: prev.modelId ?? 'minimax_heuristic' });
     }
     else {
         room.gameState = mod.initState();

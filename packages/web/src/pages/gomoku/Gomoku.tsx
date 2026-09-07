@@ -21,8 +21,8 @@ export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRo
     const [winner, setWinner] = useState<GomokuPlayer | null | undefined>(undefined);
     const [winningLine, setWinningLine] = useState<number[] | null>(null);
     const [lastMove, setLastMove] = useState<number | null>(null);
-    const [models, setModels] = useState<string[]>(['heuristic-v1']);
-    const [modelId, setModelId] = useState('heuristic-v1');
+    const [models, setModels] = useState<string[]>(['minimax_heuristic']);
+    const [modelId, setModelId] = useState('minimax_heuristic');
 
     useEffect(() => {
         fetch('/api/gomoku/models').then(r => r.json()).then((d: string[]) => {
@@ -92,7 +92,7 @@ export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRo
             <Stack align="center" gap="md">
                 <Select label="AI 模型" data={models} value={modelId} onChange={handleModelChange} w={220} />
                 <RoomWaiting roomId={stateRoomId || roomId || ''} onAddAi={onAddAi} />
-                <Text size="xs" c="dimmed">落子于交点 · 0.5s 时限 MCTS</Text>
+                <Text size="xs" c="dimmed">落子于交点 · 2s 时限 MCTS</Text>
             </Stack>
         );
     }
@@ -133,7 +133,7 @@ export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRo
                 ? <Text size="sm" c="dimmed">{p1Name}（黑）vs {p2Name}（白）观战中</Text>
                 : <Text size="sm" c="dimmed">你是 {roleLabel}棋 · 对手：{opponentNickname || 'AI'}</Text>}
             <GomokuBoard board={board} winningLine={winningLine} lastMove={lastMove} onCellClick={handleCellClick} disabled={boardDisabled} />
-            <Text size="xs" c="dimmed">15×15 交点落子 · 五子连珠 · 0.5s MCTS · {modelId}</Text>
+            <Text size="xs" c="dimmed">15×15 交点落子 · 五子连珠 · 2s MCTS · {modelId}</Text>
             {phase === 'ended' && <RematchSection hint={rematchHint} onRematch={rematch} />}
         </Stack>
     );
