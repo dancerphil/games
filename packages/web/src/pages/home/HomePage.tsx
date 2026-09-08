@@ -36,6 +36,7 @@ export const HomePage = () => {
             />
             {onlineCount > 0 && <Text size="sm" c="dimmed">当前在线：{onlineCount} 人</Text>}
             <Anchor component={Link} to="/battle">五子棋自对弈 →</Anchor>
+            <Anchor component={Link} to="/selfplay">自对弈战绩 →</Anchor>
             <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
                 {GAMES.map(game => (
                     <GameCard

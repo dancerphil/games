@@ -24,12 +24,12 @@ export const initState = (p: { modelId?: string } = {}): GomokuState => ({
     winner: null,
     winningLine: null,
     lastMove: null,
-    modelId: p.modelId ?? 'minimax_heuristic',
+    modelId: p.modelId ?? 'heuristic-puct-v1',
 });
 
 const idx = (r: number, c: number) => r * BOARD_SIZE + c;
 
-const checkWin = (board: Board, pos: number, player: Player): number[] | null => {
+export const checkWin = (board: Board, pos: number, player: Player): number[] | null => {
     const r = Math.floor(pos / BOARD_SIZE);
     const c = pos % BOARD_SIZE;
     const dirs: [number, number][] = [[0, 1], [1, 0], [1, 1], [1, -1]];

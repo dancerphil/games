@@ -16,9 +16,9 @@ type BattleGame = {
 
 export const GomokuBattle = () => {
     const { connected, send, setMessageHandler } = useAppStore();
-    const [models, setModels] = useState<string[]>(['minimax_heuristic', 'mcts_heuristic']);
-    const [blackModel, setBlackModel] = useState('minimax_heuristic');
-    const [whiteModel, setWhiteModel] = useState('mcts_heuristic');
+    const [models, setModels] = useState<string[]>(['heuristic-puct-v1', 'nn-puct-v1']);
+    const [blackModel, setBlackModel] = useState('heuristic-puct-v1');
+    const [whiteModel, setWhiteModel] = useState('nn-puct-v1');
     const [numGames, setNumGames] = useState<number>(3);
     const [running, setRunning] = useState(false);
     const [games, setGames] = useState<BattleGame[]>([]);

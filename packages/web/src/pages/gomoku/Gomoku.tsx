@@ -21,8 +21,8 @@ export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRo
     const [winner, setWinner] = useState<GomokuPlayer | null | undefined>(undefined);
     const [winningLine, setWinningLine] = useState<number[] | null>(null);
     const [lastMove, setLastMove] = useState<number | null>(null);
-    const [models, setModels] = useState<string[]>(['minimax_heuristic']);
-    const [modelId, setModelId] = useState('minimax_heuristic');
+    const [models, setModels] = useState<string[]>(['heuristic-puct-v1']);
+    const [modelId, setModelId] = useState('heuristic-puct-v1');
 
     useEffect(() => {
         fetch('/api/gomoku/models').then(r => r.json()).then((d: string[]) => {

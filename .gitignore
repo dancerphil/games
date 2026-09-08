@@ -23,3 +23,5 @@ python/.venv/
 .ruff_cache/
 .coverage
 htmlcov/
+
+nohup.out

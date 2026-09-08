@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -67,14 +66,4 @@ def nn_model_fn(checkpoint_path):
     return fn
 
 
-def find_checkpoints():
-    base = os.path.join(os.path.dirname(__file__), "..", "checkpoints")
-    base = os.path.abspath(base)
-    if not os.path.isdir(base):
-        return []
-    out = []
-    for f in os.listdir(base):
-        if f.endswith(".pth"):
-            out.append(os.path.join(base, f))
-    out.sort()
-    return out
+

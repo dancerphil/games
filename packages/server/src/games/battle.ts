@@ -1,30 +1,8 @@
 import type { WebSocket } from 'ws';
 import { send } from '../send.js';
 import { gomokuEngine } from './gomoku-engine.js';
-import { BOARD_SIZE } from './gomoku.js';
-
-const checkWin = (board: (string | null)[], pos: number, player: string): boolean => {
-    const r = Math.floor(pos / BOARD_SIZE);
-    const c = pos % BOARD_SIZE;
-    const dirs: [number, number][] = [[0, 1], [1, 0], [1, 1], [1, -1]];
-    const idx = (rr: number, cc: number) => rr * BOARD_SIZE + cc;
-    const inBounds = (rr: number, cc: number) => rr >= 0 && rr < BOARD_SIZE && cc >= 0 && cc < BOARD_SIZE;
-    for (const [dr, dc] of dirs) {
-        let count = 1;
-        for (let s = 1; s < 5; s++) {
-            const nr = r + dr * s, nc = c + dc * s;
-            if (!inBounds(nr, nc) || board[idx(nr, nc)] !== player) break;
-            count++;
-        }
-        for (let s = 1; s < 5; s++) {
-            const nr = r - dr * s, nc = c - dc * s;
-            if (!inBounds(nr, nc) || board[idx(nr, nc)] !== player) break;
-            count++;
-        }
-        if (count >= 5) return true;
-    }
-    return false;
-};
+import { BOARD_SIZE, checkWin } from './gomoku.js';
+import type { Board, Player } from './gomoku.js';
 
 export const handleBattleStart = async (ws: WebSocket, data: unknown) => {
     const { blackModel, whiteModel, numGames, timeLimitMs } = data as { blackModel: string; whiteModel: string; numGames: number; timeLimitMs?: number };
@@ -46,7 +24,6 @@ export const handleBattleStart = async (ws: WebSocket, data: unknown) => {
         const board: (string | null)[] = Array(BOARD_SIZE * BOARD_SIZE).fill(null);
         let current: 'black' | 'white' = 'black';
         let winner: string | null = null;
-        let winningLine: number[] | null = null;
         const history: { row: number; col: number; player: string }[] = [];
 
         send(ws, { type: 'battle_game_started', gameIndex, blackModel, whiteModel });
@@ -66,22 +43,20 @@ export const handleBattleStart = async (ws: WebSocket, data: unknown) => {
             board[pos] = current;
             history.push({ row, col, player: current });
 
-            const isWin = checkWin(board, pos, current);
+            const winLine = checkWin(board as Board, pos, current as Player);
             send(ws, {
                 type: 'battle_move',
                 gameIndex,
                 move: { row, col, player: current },
                 board: [...board],
                 history: [...history],
-                isWin,
+                isWin: winLine !== null,
             });
 
-            if (isWin) {
+            if (winLine) {
                 winner = current;
                 if (current === 'black') blackWins++; else whiteWins++;
-                // find winning line for display (simple)
-                winningLine = [pos];
-                send(ws, { type: 'battle_game_over', gameIndex, winner, winningLine, history, board: [...board] });
+                send(ws, { type: 'battle_game_over', gameIndex, winner, winningLine: winLine, history, board: [...board] });
                 break;
             }
             if (board.every(c => c !== null)) {

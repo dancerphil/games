@@ -11,6 +11,7 @@ import { getRoomById, getRoomList, handleAddAi, handleCreate, handleCreateAiRoom
 import { handleBattleStart } from './games/battle.js';
 import { getRelayRoomList, handleRelayCreate, handleRelayDisconnect, handleRelayJoin, handleRelayMessage } from './relay.js';
 import { gomokuEngine } from './games/gomoku-engine.js';
+import { getGame, getStats, listBatches, listGames } from './selfplay.js';
 
 const app = new Hono();
 
@@ -25,6 +26,24 @@ app.get('/api/rooms/:id', (c) => {
 app.get('/api/relay-rooms', c => c.json(getRelayRoomList()));
 app.get('/api/gomoku/models', async c => c.json(await gomokuEngine.listModels()));
 app.get('/api/health', c => c.json('healthy'));
+app.get('/api/selfplay/batches', c => c.json(listBatches()));
+app.get('/api/selfplay/stats', c => c.json(getStats({ batch_id: c.req.query('batch') ?? 'default' })));
+app.get('/api/selfplay/games', (c) => {
+    const q = c.req.query();
+    return c.json(listGames({
+        batch_id: q['batch'] ?? 'default',
+        black_model: q['black'] || undefined,
+        white_model: q['white'] || undefined,
+        winner_model: q['winner'] || undefined,
+        limit: q['limit'] ? Number(q['limit']) : undefined,
+        offset: q['offset'] ? Number(q['offset']) : undefined,
+    }));
+});
+app.get('/api/selfplay/games/:id', (c) => {
+    const game = getGame({ id: Number(c.req.param('id')) });
+    if (!game) { return c.json({ error: 'not found' }, 404); }
+    return c.json(game);
+});
 
 gomokuEngine.start();
 gomokuEngine.ensureReady().catch(e => console.error('[gomoku-engine] init failed', e));

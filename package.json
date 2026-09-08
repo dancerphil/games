@@ -10,6 +10,7 @@
         "build": "pnpm --filter '@games/web' run build",
         "dev": "concurrently -n web,server -c blue,green \"pnpm --filter @games/web dev\" \"pnpm --filter @games/server dev\"",
         "serve": "pnpm build && pnpm --filter @games/server serve",
+        "selfplay": "python python/selfplay.py --models heuristic-puct-v1,nn-puct-v2 --games-per-pair 100 --time-limit-ms 5000 --workers 4 --batch-id v3-train-2",
         "kickstart:production": "tsx scripts/kickstartProduction.ts",
         "lint-all": "pnpm lint && pnpm lint-type",
         "godot:editor": "${GODOT:-/Applications/Godot.app/Contents/MacOS/Godot} --editor --path .",

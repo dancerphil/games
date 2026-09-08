@@ -49,12 +49,9 @@ class GomokuEngine {
     private spawn() {
         const pythonDir = findPythonDir();
         const enginePath = path.join(pythonDir, 'engine.py');
-        const args = ['run', '--project', pythonDir, 'python', enginePath];
-        this.proc = spawn('uv', args, { stdio: ['pipe', 'pipe', 'pipe'] });
-        this.proc.on('error', () => {
-            // fallback to python3 direct
-            this.proc = spawn('python3', [enginePath], { stdio: ['pipe', 'pipe', 'pipe'] });
-            this.attach();
+        this.proc = spawn('python', [enginePath], { cwd: pythonDir, stdio: ['pipe', 'pipe', 'pipe'] });
+        this.proc.on('error', (e) => {
+            process.stderr.write(`[gomoku-engine] failed to spawn python: ${e.message}\n`);
             return;
         });
         this.attach();
@@ -87,15 +84,11 @@ class GomokuEngine {
                 }
                 return;
             }
-            // ignore warning lines from uv before GTP starts? They go to stderr now, stdout only GTP
-            if (trimmed.startsWith('warning:')) return;
             this.buffer.push(trimmed);
         });
         // stderr passthrough for debugging
         this.proc.stderr?.on('data', (d) => {
-            const s = d.toString();
-            if (s.includes('warning:')) return;
-            process.stderr.write(`[gomoku-engine] ${s}`);
+            process.stderr.write(`[gomoku-engine] ${d.toString()}`);
         });
     }
 
@@ -129,7 +122,7 @@ class GomokuEngine {
         }
     }
 
-    async getMove(board: (string | null)[], player: string, modelId = 'heuristic-v1'): Promise<{ row: number; col: number }> {
+    async getMove(board: (string | null)[], player: string, modelId = 'heuristic-puct-v1'): Promise<{ row: number; col: number }> {
         let release: (() => void) | undefined;
         const prev = this.serial;
         this.serial = new Promise<void>((r) => { release = r; });

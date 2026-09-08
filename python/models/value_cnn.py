@@ -51,14 +51,6 @@ class ValueCNN(nn.Module):
         value = torch.tanh(self.value_fc2(value))
         return value, policy_logits
 
-    def calc(self, x):
-        self.eval()
-        with torch.no_grad():
-            value, logits = self.forward(x)
-            probs = F.softmax(logits, dim=1).view(-1, BOARD_SIZE, BOARD_SIZE)
-            return value, probs
-
-
 def infer_model_kwargs(state_dict):
     hidden = state_dict["conv_init.weight"].shape[0]
     block_idxs = {int(k.split(".")[1]) for k in state_dict if k.startswith("res_blocks.")}
