@@ -1,25 +1,21 @@
 #!/usr/bin/env python3
-"""无界面自对弈批量脚本：多模型两两对比（含各自自战），结果存 ~/.games/selfplay.sqlite。
+"""无界面自对弈批量脚本：多模型两两对比（含各自自战），结果存 sqlite 并同步更新 ELO。
 
-用法示例（4 模型两两含自战各 100 局、每手 5s、4 并发，跑一整夜）：
-    pnpm selfplay
-    pnpm selfplay -- --games-per-pair 100 --time-limit-ms 5000 --workers 4
-    nohup pnpm selfplay &
+用法（推荐走 pnpm 脚本，参数集中在 package.json）：
+    pnpm selfplay        # --mode train：训练数据生成（老师自对弈+互弈，200 局/对）
+    pnpm rate:nn3        # --mode init-elo：新模型 vs 其他各模型各 10 局定级
+    python python/selfplay.py --show-elo        # 评级 + 可用模型
+    python python/selfplay.py --recalc-elo      # 重放全部对局重建 ELO（修复用）
 
-日志自动追加到 ~/.games/selfplay-<batch-id>.log，无需 shell 重定向。
-
- 断点续跑：同一 --batch-id 已落库的对局会自动跳过，可直接重跑同一命令。
- 查看可用模型：python python/selfplay.py --list-models
-
- ELO：每局落库时同步更新 elo_ratings 表（初始 1500，K=32，平局各 0.5），
- 与 batch 无关——后续任何 batch 的对战都会继续更新同一份 ELO。
- 初始定级赛（8 模型两两 5 黑 5 白共 360 局）：
-     python python/selfplay.py --games-per-pair 10 --time-limit-ms 5000 --workers 4 --batch-id elo-seed
- 查看当前 ELO：python python/selfplay.py --show-elo
- 按 id 重放全部对局重建 ELO（修复用）：python python/selfplay.py --recalc-elo
+所有对局统一协议（5s/手、8 workers、前 4 手开局采样）写同一 DB，
+每局都更新 ELO；batch-id 仅用于筛选与断点续跑（缺省按参数自动派生，
+同命令重跑即自动续跑）。并行写同一 DB 安全（WAL + 单事务），
+合计 workers 别超 CPU 核数，time-limit 是墙钟，超载会拉低每手有效模拟数。
+日志统一写 ~/.games/logs/selfplay-<batch-id>.log。
 """
 import argparse
 import concurrent.futures
+import hashlib
 import itertools
 import json
 import os
@@ -59,7 +55,18 @@ def list_models():
 
 def ensure_schema(db_path):
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    con = sqlite3.connect(db_path)
+    # WAL + busy_timeout + 手动事务：支持多个批次进程并行写同一 DB，
+    # ELO 读改写包在 BEGIN IMMEDIATE 单事务内，消除并发丢更新。
+    con = sqlite3.connect(db_path, timeout=30.0, isolation_level=None)
+    con.execute("PRAGMA busy_timeout=30000")
+    # journal_mode 变更需要独占且不吃 busy_timeout：并发启动时轮询等待
+    # （WAL 是持久属性，对端设好即可）
+    for _ in range(30):
+        try:
+            con.execute("PRAGMA journal_mode=WAL")
+            break
+        except sqlite3.OperationalError:
+            time.sleep(1.0)
     con.execute(
         """CREATE TABLE IF NOT EXISTS games (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,7 +98,6 @@ def ensure_schema(db_path):
             updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         )"""
     )
-    con.commit()
     return con
 
 
@@ -157,12 +163,13 @@ def _move_elo(con, model, opp_model, actual, result):
 
 def recalc_elo(con):
     """按 id 顺序重放全部对局重建 ELO（修复用）。"""
+    con.execute("BEGIN IMMEDIATE")
     con.execute("DELETE FROM elo_ratings")
     games = con.execute(
         "SELECT black_model, white_model, winner FROM games ORDER BY id").fetchall()
     for b, w, winner in games:
         apply_elo(con, b, w, winner)
-    con.commit()
+    con.execute("COMMIT")
     print(f"[elo] recalculated from {len(games)} games")
 
 
@@ -176,6 +183,7 @@ def existing_counts(con, batch_id):
 
 def play_one(task):
     """单个对局（跑在子进程）。返回可直接落库的 dict。"""
+    import random
     import time as _time
 
     from models import REGISTRY
@@ -184,6 +192,7 @@ def play_one(task):
     black_model = task["black_model"]
     white_model = task["white_model"]
     time_limit_ms = task["time_limit_ms"]
+    sample_moves = task.get("sample_moves", 0)
     board = [None] * (BOARD_SIZE * BOARD_SIZE)
     moves = []
     policies = []
@@ -196,9 +205,16 @@ def play_one(task):
     from mcts import get_best_move_with_stats
 
     for _ in range(BOARD_SIZE * BOARD_SIZE):
-        pos, visits, tactical = get_best_move_with_stats(
+        pos, visits, tactical, root_q = get_best_move_with_stats(
             board, current, fns[current], time_limit_ms=time_limit_ms)
-        policies.append({"d": visits, "t": tactical})
+        # 开局多样化：前 N 手按 visit 分布采样（仅非 tactical 步），
+        # 避免确定性自对弈重放同一棋路；visit 分布仍照记作 policy 目标
+        if sample_moves and len(moves) < sample_moves and not tactical and len(visits) > 1:
+            pos = random.choices(list(visits.keys()), weights=visits.values())[0]
+        step = {"d": visits, "t": tactical}
+        if not tactical:
+            step["q"] = root_q
+        policies.append(step)
         if board[pos] is not None:
             # 非法落子极少见：判负，避免坏数据污染统计
             winner = "white" if current == "black" else "black"
@@ -224,9 +240,15 @@ def play_one(task):
     }
 
 
-def build_tasks(models, games_per_pair):
+def build_tasks(models, games_per_pair, no_self=False, vs=None):
+    """vs 模式：只跑该模型 vs 其他模型（不含自战），用于新模型定级。"""
+    if vs:
+        pairs = [(vs, m) for m in models if m != vs]
+    else:
+        pairs = (itertools.combinations(models, 2) if no_self
+                 else itertools.combinations_with_replacement(models, 2))
     tasks = []
-    for a, b in itertools.combinations_with_replacement(models, 2):
+    for a, b in pairs:
         for k in range(games_per_pair):
             if k % 2 == 0:
                 tasks.append({"black_model": a, "white_model": b, "pair": f"{a} vs {b}"})
@@ -235,27 +257,54 @@ def build_tasks(models, games_per_pair):
     return tasks
 
 
+# 常驻工作流预设：mode 定职责，显式参数可覆盖预设值。
+# 所有对局统一协议（5s/手、开局采样 4 手）写同一 DB，每局都更新 ELO，
+# batch-id 仅用于筛选与断点续跑。
+MODE_PRESETS = {
+    # 训练数据生成：老师自对弈 + 互弈
+    "train": {"models": ["nn3-policy-h2-value", "heuristic-v2"], "games_per_pair": 200},
+    # 新模型定级：vs 其他各模型，不含自战
+    "init-elo": {"no_self": True, "games_per_pair": 10},
+}
+LOG_DIR = os.path.expanduser("~/.games/logs")
+
+
+def derive_batch_id(args, models):
+    """按全部跑法参数派生 batch-id：同命令重跑自动续跑，改参数即新批次。"""
+    key = "|".join([
+        args.mode or "", ",".join(models), args.vs or "", str(args.games_per_pair),
+        str(args.time_limit_ms), str(args.sample_moves),
+        "noself" if args.no_self else "self",
+    ])
+    return "auto-" + hashlib.md5(key.encode()).hexdigest()[:8]
+
+
 def main():
     parser = argparse.ArgumentParser(description="gomoku headless selfplay")
-    parser.add_argument("--models", default=",".join(
-        ["heuristic-puct-v1", "heuristic-uct-v1",
-         "nn-puct-v1", "nn-uct-v1", "nn-puct-v2", "nn-uct-v2",
-         "nn-puct-v3", "nn-uct-v3"]),
-        help="逗号分隔的模型名，默认 8 个全量")
-    parser.add_argument("--games-per-pair", type=int, default=100, help="每无序对局数（黑白各半）")
+    parser.add_argument("--mode", default=None, choices=[*MODE_PRESETS],
+                        help="train=训练数据生成 / init-elo=新模型定级；缺省=自由全模型循环赛")
+    parser.add_argument("--models", default=None,
+                        help="逗号分隔的模型名，默认全部已注册模型（train 预设老师名单）")
+    parser.add_argument("--vs", default=None,
+                        help="只跑该模型 vs 其他各模型（init-elo 必填），定级用")
+    parser.add_argument("--games-per-pair", type=int, default=None,
+                        help="每无序对局数（黑白各半），缺省按 mode 预设，无 mode 为 10")
     parser.add_argument("--time-limit-ms", type=int, default=5000, help="每手思考毫秒数")
-    parser.add_argument("--workers", type=int, default=4, help="并发进程数")
+    parser.add_argument("--workers", type=int, default=8, help="并发进程数")
     parser.add_argument("--db", default=DEFAULT_DB, help="sqlite 路径")
-    parser.add_argument("--batch-id", required=False, default=None, help="同一 batch 可断点续跑")
-    parser.add_argument("--list-models", action="store_true")
-    parser.add_argument("--show-elo", action="store_true", help="只打印当前 ELO，不开跑")
+    parser.add_argument("--batch-id", default=None,
+                        help="同一 batch 断点续跑；缺省按参数自动派生")
+    parser.add_argument("--show-elo", action="store_true", help="打印当前 ELO 与可用模型，不开跑")
     parser.add_argument("--recalc-elo", action="store_true", help="重放全部对局重建 ELO 后退出")
-    parser.add_argument("--dry-run", action="store_true", help="只打印任务数，不开跑")
+    parser.add_argument("--no-self", action="store_true", help="只跑不同模型两两对战，不含自战")
+    parser.add_argument("--sample-moves", type=int, default=4,
+                        help="前 N 手按 visit 分布采样开局（统一协议 4；0=确定性）")
     args = parser.parse_args()
 
     if args.show_elo:
         con = ensure_schema(args.db)
         print_ratings(con)
+        print("[elo] available models:", " ".join(list_models()))
         con.close()
         return
 
@@ -266,27 +315,39 @@ def main():
         con.close()
         return
 
-    if not args.batch_id:
-        print("need --batch-id (or use --show-elo / --recalc-elo)", file=sys.stderr)
+    preset = MODE_PRESETS.get(args.mode, {})
+    if args.mode == "init-elo" and not args.vs:
+        print("--mode init-elo 需要 --vs MODEL", file=sys.stderr)
         sys.exit(2)
+    for key, value in preset.items():
+        if getattr(args, key) is None:
+            setattr(args, key, value)
+    if args.games_per_pair is None:
+        args.games_per_pair = 10
 
-    if args.list_models:
-        print(" ".join(list_models()))
-        return
-
-    models = [m.strip() for m in args.models.split(",") if m.strip()]
+    if isinstance(args.models, list):
+        models = args.models
+    elif args.models:
+        models = [m.strip() for m in args.models.split(",") if m.strip()]
+    else:
+        models = list_models()
     available = set(list_models())
-    unknown = [m for m in models if m not in available]
+    unknown = [m for m in models if m not in available] + (
+        [args.vs] if args.vs and args.vs not in available else [])
     if unknown:
         print(f"unknown model: {unknown}, available: {sorted(available)}", file=sys.stderr)
         sys.exit(1)
-    if len(models) < 2:
+    if len(models) < 2 and not args.vs:
         print("至少需要 2 个模型", file=sys.stderr)
         sys.exit(1)
+    if args.vs and args.vs not in models:
+        models = [args.vs, *models]
+    batch_id = args.batch_id or derive_batch_id(args, models)
 
-    tasks = build_tasks(models, args.games_per_pair)
+    tasks = build_tasks(models, args.games_per_pair, args.no_self, args.vs)
     for t in tasks:
         t["time_limit_ms"] = args.time_limit_ms
+        t["sample_moves"] = args.sample_moves
 
     con = ensure_schema(args.db)
     done = existing_counts(con, args.batch_id)
@@ -305,18 +366,21 @@ def main():
         pending.append(t)
 
     total = len(tasks)
-    print(f"[selfplay] batch={args.batch_id} models={models}")
-    print(f"[selfplay] pairs={len(models) * (len(models) + 1) // 2} games_per_pair={args.games_per_pair} "
+    if args.vs:
+        n_pairs = len(models) - 1
+    else:
+        n_pairs = (len(models) * (len(models) - 1) // 2) if args.no_self else (len(models) * (len(models) + 1) // 2)
+    print(f"[selfplay] batch={batch_id} models={models}")
+    print(f"[selfplay] pairs={n_pairs} games_per_pair={args.games_per_pair} "
           f"total={total} skipped={skipped} pending={len(pending)} "
           f"time_limit={args.time_limit_ms}ms workers={args.workers} db={args.db}")
-    if args.dry_run or not pending:
-        if not pending:
-            print("[selfplay] nothing to do, all done.")
+    if not pending:
+        print("[selfplay] nothing to do, all done.")
         con.close()
         return
 
-    log_path = os.path.expanduser(f"~/.games/selfplay-{args.batch_id}.log")
-    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    log_path = os.path.join(LOG_DIR, f"selfplay-{batch_id}.log")
+    os.makedirs(LOG_DIR, exist_ok=True)
     log_file = open(log_path, "a")
     sys.stdout = Tee(sys.stdout, log_file)
     sys.stderr = Tee(sys.stderr, log_file)
@@ -332,19 +396,21 @@ def main():
                 task = future_to_task[fut]
                 try:
                     r = fut.result()
-                except Exception as e:  # noqa: BLE001 - 子进程异常只记日志，不中断整夜任务
+                    # 单事务写局分 + ELO：并行批次下原子，busy_timeout 兜底锁等待
+                    con.execute("BEGIN IMMEDIATE")
+                    con.execute(
+                        "INSERT INTO games (batch_id, black_model, white_model, winner, moves, "
+                        "num_moves, time_limit_ms, duration_ms, policies) VALUES (?,?,?,?,?,?,?,?,?)",
+                        (args.batch_id, r["black_model"], r["white_model"], r["winner"],
+                         json.dumps(r["moves"]), r["num_moves"], args.time_limit_ms, r["duration_ms"],
+                         json.dumps(r["policies"])),
+                    )
+                    apply_elo(con, r["black_model"], r["white_model"], r["winner"])
+                    con.execute("COMMIT")
+                except Exception as e:  # noqa: BLE001 - 子进程/落库异常只记日志，不中断整夜任务
                     print(f"[selfplay] ERROR {task['black_model']} vs {task['white_model']}: {e}",
                           file=sys.stderr, flush=True)
                     continue
-                con.execute(
-                    "INSERT INTO games (batch_id, black_model, white_model, winner, moves, "
-                    "num_moves, time_limit_ms, duration_ms, policies) VALUES (?,?,?,?,?,?,?,?,?)",
-                    (args.batch_id, r["black_model"], r["white_model"], r["winner"],
-                     json.dumps(r["moves"]), r["num_moves"], args.time_limit_ms, r["duration_ms"],
-                     json.dumps(r["policies"])),
-                )
-                apply_elo(con, r["black_model"], r["white_model"], r["winner"])
-                con.commit()
                 finished += 1
                 key = (r["black_model"], r["white_model"], r["winner"])
                 wins[key] = wins.get(key, 0) + 1

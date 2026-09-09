@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Badge, Box, Button, Group, NumberInput, Select, Stack, Text, Card } from '@mantine/core';
 import { useAppStore } from '../../store';
 import { GomokuBoard } from './GomokuBoard';
+import { fetchModelCards, toModelOptions } from './models';
+import type { ModelOption } from './models';
 
 const BOARD_SIZE = 15;
 
@@ -16,10 +18,10 @@ interface BattleGame {
 
 export const GomokuBattle = () => {
     const { connected, send, setMessageHandler } = useAppStore();
-    const [models, setModels] = useState<string[]>(['heuristic-puct-v1', 'nn-puct-v1']);
-    const [blackModel, setBlackModel] = useState('heuristic-puct-v1');
-    const [whiteModel, setWhiteModel] = useState('nn-puct-v1');
-    const [numGames, setNumGames] = useState<number>(3);
+    const [models, setModels] = useState<ModelOption[]>([]);
+    const [blackModel, setBlackModel] = useState('heuristic-v1');
+    const [whiteModel, setWhiteModel] = useState('nn-v2');
+    const [numGames, setNumGames] = useState<number>(1);
     const [running, setRunning] = useState(false);
     const [games, setGames] = useState<BattleGame[]>([]);
     const [selected, setSelected] = useState(0);
@@ -27,12 +29,12 @@ export const GomokuBattle = () => {
     const [results, setResults] = useState<{ blackWins: number; whiteWins: number; draws: number } | null>(null);
 
     useEffect(() => {
-        fetch('/api/gomoku/models').then(r => r.json()).then((d: string[]) => {
-            if (Array.isArray(d) && d.length) {
-                setModels(d);
-                if (!d.includes(blackModel)) setBlackModel(d[0]);
-                if (!d.includes(whiteModel)) setWhiteModel(d[1] ?? d[0]);
-            }
+        fetchModelCards().then((cards) => {
+            if (!cards.length) return;
+            setModels(toModelOptions(cards));
+            const avail = cards.filter(c => c.available);
+            if (avail.length) setBlackModel(avail[0]!.model);
+            if (avail.length > 1) setWhiteModel(avail[1]!.model);
         }).catch(() => {});
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -120,9 +122,9 @@ export const GomokuBattle = () => {
         <Stack align="center" gap="md" p="md">
             <Text fw={700} size="lg">自对弈</Text>
             <Group gap="sm" wrap="wrap" justify="center">
-                <Select label="黑方" data={models} value={blackModel} onChange={v => v && setBlackModel(v)} w={180} disabled={running} />
-                <Select label="白方" data={models} value={whiteModel} onChange={v => v && setWhiteModel(v)} w={180} disabled={running} />
-                <NumberInput label="盘数" value={numGames} onChange={v => setNumGames(typeof v === 'number' ? v : 3)} min={1} max={20} w={100} disabled={running} />
+                <Select label="黑方" data={models} value={blackModel} onChange={v => v && setBlackModel(v)} w={220} disabled={running} />
+                <Select label="白方" data={models} value={whiteModel} onChange={v => v && setWhiteModel(v)} w={220} disabled={running} />
+                <NumberInput label="盘数" value={numGames} onChange={v => setNumGames(typeof v === 'number' ? v : 1)} min={1} max={20} w={100} disabled={running} />
                 <Button onClick={handleStart} disabled={!connected || running} mt={22} color={running ? 'gray' : 'blue'}>
                     {running ? '对弈中...' : '开始'}
                 </Button>
@@ -183,6 +185,9 @@ export const GomokuBattle = () => {
                         />
                         {selectedGame && selectedGame.history.length > 0 && (
                             <Group gap="xs">
+                                <Button size="xs" variant="light" onClick={() => setStep(0)} disabled={step === 0}>
+                                    第一步
+                                </Button>
                                 <Button size="xs" variant="light" onClick={() => setStep(s => (s === null ? selectedGame.history.length - 1 : Math.max(0, (s ?? 0) - 1)))} disabled={step === 0}>
                                     上一步
                                 </Button>

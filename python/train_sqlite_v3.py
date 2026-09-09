@@ -32,6 +32,8 @@ BOARD_SIZE = 15
 BASE = os.path.dirname(__file__)
 DEFAULT_DB = os.path.expanduser("~/.games/selfplay.sqlite")
 CHECKPOINT = os.path.join(BASE, "checkpoints", "3.pth")
+CHECKPOINT_FILE = os.path.basename(CHECKPOINT)
+MANIFEST = os.path.join(BASE, "checkpoints", "manifest.json")
 
 # v3 结构（v1/v2 为 H16/B2/V32，见 train_sqlite.py）
 HIDDEN = 32
@@ -197,6 +199,18 @@ def run_training(args):
     model.load_state_dict(best_state)
     torch.save(model.state_dict(), CHECKPOINT)
     print(f"[train] saved {CHECKPOINT} best_val={best_val:.4f}")
+    register_manifest(args.model, CHECKPOINT_FILE)
+
+
+def register_manifest(model_name, checkpoint_file):
+    """落盘即登记：serving 下次启动直接可用，不改代码。"""
+    with open(MANIFEST) as f:
+        data = json.load(f)
+    data[model_name] = {"checkpoint": checkpoint_file}
+    with open(MANIFEST, "w") as f:
+        json.dump(data, f, indent=4, sort_keys=True)
+        f.write("\n")
+    print(f"[train] registered {model_name} -> {checkpoint_file} in manifest")
 
 
 def main():
@@ -209,6 +223,8 @@ def main():
     parser.add_argument("--batch", type=int, default=32)
     parser.add_argument("--lr", type=float, default=5e-4)
     parser.add_argument("--wd", type=float, default=1e-4)
+    parser.add_argument("--model", default="nn-v3",
+                        help="登记到 manifest 的模型名")
     run_training(parser.parse_args())
 
 

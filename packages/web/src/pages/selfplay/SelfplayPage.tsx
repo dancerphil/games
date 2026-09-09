@@ -14,7 +14,11 @@ interface ModelStat {
     draws: number;
     losses: number;
     winRate: number;
+    elo?: number | null;
 }
+
+const eloLabel = (m: { model: string; elo?: number | null }): string =>
+    m.elo == null ? `${m.model}（未定级）` : `${m.model}（${Math.round(m.elo)}）`;
 
 interface MatrixCell {
     black_model: string;
@@ -110,7 +114,6 @@ export const SelfplayPage = () => {
 
     const detailWinner = detail ? winnerModel(detail) : null;
 
-    const modelNames = models.map(m => m.model);
     const matrixModels = [...new Set([...matrix.map(m => m.black_model), ...matrix.map(m => m.white_model)])].sort();
     const cellOf = (black: string, white: string) => matrix.find(m => m.black_model === black && m.white_model === white);
 
@@ -141,6 +144,7 @@ export const SelfplayPage = () => {
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th>模型</Table.Th>
+                            <Table.Th>ELO</Table.Th>
                             <Table.Th>盘数</Table.Th>
                             <Table.Th>胜</Table.Th>
                             <Table.Th>平</Table.Th>
@@ -152,6 +156,7 @@ export const SelfplayPage = () => {
                         {models.map(m => (
                             <Table.Tr key={m.model}>
                                 <Table.Td>{m.model}</Table.Td>
+                                <Table.Td>{m.elo == null ? '–' : Math.round(m.elo)}</Table.Td>
                                 <Table.Td>{m.games}</Table.Td>
                                 <Table.Td>{m.wins}</Table.Td>
                                 <Table.Td>{m.draws}</Table.Td>
@@ -160,7 +165,7 @@ export const SelfplayPage = () => {
                             </Table.Tr>
                         ))}
                         {models.length === 0 && (
-                            <Table.Tr><Table.Td colSpan={6}><Text size="sm" c="dimmed">暂无数据，先跑 pnpm selfplay</Text></Table.Td></Table.Tr>
+                            <Table.Tr><Table.Td colSpan={7}><Text size="sm" c="dimmed">暂无数据，先跑 pnpm selfplay</Text></Table.Td></Table.Tr>
                         )}
                     </Table.Tbody>
                 </Table>
@@ -199,11 +204,11 @@ export const SelfplayPage = () => {
                 <Select
                     label="只看胜者"
                     placeholder="全部"
-                    data={modelNames}
+                    data={models.map(m => ({ value: m.model, label: eloLabel(m) }))}
                     value={filter}
                     onChange={setFilter}
                     clearable
-                    w={180}
+                    w={220}
                 />
                 <Text size="sm" c="dimmed" mb={8}>共 {total} 盘</Text>
             </Group>
@@ -252,6 +257,9 @@ export const SelfplayPage = () => {
                     </Text>
                     <GomokuBoard board={board} winningLine={null} lastMove={lastMove} onCellClick={() => {}} disabled />
                     <Group gap="xs">
+                        <Button size="xs" variant="light" onClick={() => setStep(0)} disabled={step === 0}>
+                            第一步
+                        </Button>
                         <Button size="xs" variant="light" onClick={() => setStep(s => (s === null ? detail.moves.length - 1 : Math.max(0, (s ?? 0) - 1)))} disabled={step === 0}>
                             上一步
                         </Button>

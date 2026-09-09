@@ -70,24 +70,7 @@ def get_candidates(board):
                 p = idx(nr, nc)
                 if board[p] is None:
                     s.add(p)
-    cands = list(s)
-    scored = []
-    for p in cands:
-        r, c = divmod(p, BOARD_SIZE)
-        neighbor = 0
-        for dr in range(-2, 3):
-            for dc in range(-2, 3):
-                if dr == 0 and dc == 0:
-                    continue
-                nr, nc = r + dr, c + dc
-                if not in_bounds(nr, nc):
-                    continue
-                if board[idx(nr, nc)] is not None:
-                    neighbor += 1 / (abs(dr) + abs(dc) or 1)
-        scored.append((p, neighbor))
-    scored.sort(key=lambda x: -x[1])
-    n = 20 if len(occupied) < 10 else 24
-    return [p for p, _ in scored[:n]]
+    return sorted(s)
 
 
 class Node:
@@ -109,11 +92,9 @@ class Node:
 
 
 class MCTS:
-    def __init__(self, model_fn, strategy=None, c_puct=None, c_uct=None, puct2=0.0):
+    def __init__(self, model_fn, c_puct=None, puct2=0.0):
         self.model_fn = model_fn
-        self.strategy = strategy or getattr(model_fn, "mcts_strategy", "puct")
         self.c_puct = c_puct or getattr(model_fn, "mcts_c_puct", 1.2)
-        self.c_uct = c_uct or getattr(model_fn, "mcts_c_uct", 1.4142)
         self.puct2 = puct2
 
     def is_terminal(self, board):
@@ -140,16 +121,6 @@ class MCTS:
             node.is_expanded = True
             return float(value)
         cands = get_candidates(node.board)
-        if self.strategy == "uct":
-            # 无先验：忽略 policy，均分 prior，只用 value 做 UCT 搜索
-            for p in cands:
-                child_board = node.board[:]
-                child_board[p] = node.player
-                child_player = "white" if node.player == "black" else "black"
-                node.children[p] = Node(child_board, child_player, move=p, parent=node, prior=1.0 / len(cands))
-            node.value = float(value)
-            node.is_expanded = True
-            return float(value)
         total = sum(float(policy[p]) for p in cands)
         if total < 1e-8:
             for p in cands:
@@ -172,21 +143,6 @@ class MCTS:
 
     def select_child(self, node):
         total_visits = sum(c.visit_count for c in node.children.values())
-        if self.strategy == "uct":
-            # UCT（树上的 UCB1）：Q + C*sqrt(ln(N+1)/(n+1))，无 prior
-            # 未访问过 -> 视为 +inf，保证每个子节点先走一次
-            best_score = -1e9
-            best = None
-            for child in node.children.values():
-                if child.visit_count == 0:
-                    return child
-                q = -child.q
-                u = self.c_uct * math.sqrt(math.log(total_visits + 1) / (child.visit_count + 1))
-                score = q + u
-                if score > best_score:
-                    best_score = score
-                    best = child
-            return best
         best_score = -1e9
         best = None
         for child in node.children.values():
@@ -201,18 +157,22 @@ class MCTS:
         return best
 
     def search(self, root_board, root_player, time_limit_ms=2000):
-        """返回 (best_move, {pos: visits}, tactical)。tactical 步分布为单点。"""
+        """返回 (best_move, {pos: visits}, tactical, root_q)。
+
+        tactical 步分布为单点、root_q=None（未搜索）。
+        root_q 为根节点 visit 加权平均 q（行棋方视角），供训练做 value 软目标。
+        """
         root = Node(root_board[:], root_player)
         # same short-circuit as every other decision point
         tactical = find_tactical_move(root_board, root_player)
         if tactical is not None:
-            return tactical, {tactical: 1}, True
+            return tactical, {tactical: 1}, True, None
         cands = get_candidates(root_board)
         if not cands:
-            return idx(7, 7)
+            return idx(7, 7), {}, False, 0.0
         self.expand(root)
         if not root.children:
-            return cands[0]
+            return cands[0], {}, False, float(root.value)
         deadline = time.monotonic() + time_limit_ms / 1000.0
         while time.monotonic() < deadline:
             node = root
@@ -233,34 +193,33 @@ class MCTS:
                 leaf_value = -leaf_value
         best_move = max(root.children.items(), key=lambda kv: kv[1].visit_count)[0]
         visits = {pos: c.visit_count for pos, c in root.children.items() if c.visit_count}
-        return best_move, visits, False
+        root_q = root.value_sum / root.visit_count if root.visit_count else float(root.value)
+        return best_move, visits, False, root_q
 
     def run(self, root_board, root_player, time_limit_ms=2000):
-        move, _, _ = self.search(root_board, root_player, time_limit_ms)
+        move, _, _, _ = self.search(root_board, root_player, time_limit_ms)
         return move
 
 
-def _mcts_for(model_fn, strategy=None, c_puct=None, c_uct=None):
+def _mcts_for(model_fn, c_puct=None):
     return MCTS(
         model_fn,
-        strategy=strategy or getattr(model_fn, "mcts_strategy", "puct"),
         c_puct=c_puct or getattr(model_fn, "mcts_c_puct", 1.2),
-        c_uct=c_uct or getattr(model_fn, "mcts_c_uct", 1.4142),
     )
 
 
-def get_best_move_puct(board, player, model_fn, time_limit_ms=2000, strategy=None):
-    mcts = _mcts_for(model_fn, strategy=strategy)
+def get_best_move_puct(board, player, model_fn, time_limit_ms=2000):
+    mcts = _mcts_for(model_fn)
     return mcts.run(board[:], player, time_limit_ms=time_limit_ms)
 
 
-def get_best_move(board, player, model_fn, time_limit_ms=2000, strategy=None):
+def get_best_move(board, player, model_fn, time_limit_ms=2000):
     tactical = find_tactical_move(board, player)
     if tactical is not None:
         return tactical
-    return get_best_move_puct(board, player, model_fn, time_limit_ms=time_limit_ms, strategy=strategy)
+    return get_best_move_puct(board, player, model_fn, time_limit_ms=time_limit_ms)
 
 
-def get_best_move_with_stats(board, player, model_fn, time_limit_ms=2000, strategy=None):
-    mcts = _mcts_for(model_fn, strategy=strategy)
+def get_best_move_with_stats(board, player, model_fn, time_limit_ms=2000):
+    mcts = _mcts_for(model_fn)
     return mcts.search(board[:], player, time_limit_ms=time_limit_ms)

@@ -1,0 +1,7 @@
+{
+    "heuristic-v1": {"builtin": true},
+    "heuristic-v2": {"builtin": true},
+    "nn-v2": {"checkpoint": "2.pth"},
+    "nn-v3": {"checkpoint": "3.pth"},
+    "nn3-policy-h2-value": {"policy": "nn-v3", "value": "heuristic-v2"}
+}

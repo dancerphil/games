@@ -43,20 +43,51 @@ export const listBatches = (): { batch_id: string; games: number }[] =>
         return rows;
     }, []);
 
+export interface EloRating {
+    model: string;
+    rating: number;
+    games: number;
+    wins: number;
+    losses: number;
+    draws: number;
+}
+
+export const getEloRatings = (): EloRating[] =>
+    withDb(({ db }) => {
+        try {
+            return db.prepare(
+                'SELECT model, rating, games, wins, losses, draws FROM elo_ratings ORDER BY rating DESC',
+            ).all() as unknown as EloRating[];
+        }
+        catch {
+            return [];
+        }
+    }, []);
+
 export const getStats = (p: { batch_id: string }): {
     batch_id: string;
     games: number;
-    models: { model: string; games: number; wins: number; draws: number; losses: number; winRate: number }[];
+    models: { model: string; games: number; wins: number; draws: number; losses: number; winRate: number; elo: number | null }[];
     matrix: { black_model: string; white_model: string; games: number; blackWins: number; whiteWins: number; draws: number }[];
 } => {
-    const rows = withDb(({ db }) => {
+    const { rows, elo } = withDb(({ db }) => {
         const query = p.batch_id === 'all'
             ? db.prepare('SELECT black_model, white_model, winner FROM games')
             : db.prepare('SELECT black_model, white_model, winner FROM games WHERE batch_id = ?');
-        return (p.batch_id === 'all' ? query.all() : query.all(p.batch_id)) as {
+        const rows = (p.batch_id === 'all' ? query.all() : query.all(p.batch_id)) as {
             black_model: string; white_model: string; winner: string;
         }[];
-    }, []);
+        let elo: EloRating[] = [];
+        try {
+            elo = db.prepare('SELECT model, rating, games, wins, losses, draws FROM elo_ratings').all() as unknown as EloRating[];
+        }
+        catch {
+            elo = [];
+        }
+        return { rows, elo };
+    }, { rows: [], elo: [] });
+    const eloOf = (model: string): number | null =>
+        elo.find(e => e.model === model)?.rating ?? null;
     const per = new Map<string, { games: number; wins: number; draws: number; losses: number }>();
     const mat = new Map<string, { black_model: string; white_model: string; games: number; blackWins: number; whiteWins: number; draws: number }>();
     const bump = (model: string) => {
@@ -90,7 +121,7 @@ export const getStats = (p: { batch_id: string }): {
         mat.set(key, m);
     }
     const models = [...per.entries()]
-        .map(([model, s]) => ({ model, ...s, winRate: s.games ? s.wins / s.games : 0 }))
+        .map(([model, s]) => ({ model, ...s, winRate: s.games ? s.wins / s.games : 0, elo: eloOf(model) }))
         .sort((x, y) => y.winRate - x.winRate || y.wins - x.wins);
     return { batch_id: p.batch_id, games: rows.length, models, matrix: [...mat.values()] };
 };

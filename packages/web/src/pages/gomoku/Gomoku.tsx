@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge, Group, Select, Stack, Text } from '@mantine/core';
 import { GameConnecting } from '../../components/GameConnecting';
 import { RematchSection } from '../../components/RematchSection';
@@ -7,9 +7,12 @@ import { useGameRoom } from '../../hooks/useGameRoom';
 import type { InitialAction } from '../../hooks/useGameRoom';
 import { useNickname } from '../../hooks/useNickname';
 import { GomokuBoard } from './GomokuBoard';
+import { fetchModelCards, toModelOptions } from './models';
+import type { ModelOption } from './models';
 import type { GomokuBoard as BoardType, GomokuMessage, GomokuPlayer } from './wsTypes';
 
 const BOARD_SIZE = 15;
+const COLS = 'ABCDEFGHIJKLMNO';
 const EMPTY: BoardType = Array(BOARD_SIZE * BOARD_SIZE).fill(null) as BoardType;
 
 export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRole }: {
@@ -17,24 +20,38 @@ export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRo
 }) => {
     const [nickname] = useNickname();
     const [board, setBoard] = useState<BoardType>([...EMPTY]);
+    const boardRef = useRef<BoardType>([...EMPTY]);
+    const [moves, setMoves] = useState<{ pos: number; player: GomokuPlayer }[]>([]);
     const [currentTurn, setCurrentTurn] = useState<GomokuPlayer>('black');
     const [winner, setWinner] = useState<GomokuPlayer | null | undefined>(undefined);
     const [winningLine, setWinningLine] = useState<number[] | null>(null);
     const [lastMove, setLastMove] = useState<number | null>(null);
-    const [models, setModels] = useState<string[]>(['heuristic-puct-v1']);
-    const [modelId, setModelId] = useState('heuristic-puct-v1');
+    const [models, setModels] = useState<ModelOption[]>([]);
+    const [modelId, setModelId] = useState('heuristic-v1');
 
     useEffect(() => {
-        fetch('/api/gomoku/models').then(r => r.json()).then((d: string[]) => {
-            if (Array.isArray(d) && d.length) {
-                setModels(d);
-                if (!d.includes(modelId)) setModelId(d[0]);
-            }
+        fetchModelCards().then((cards) => {
+            if (!cards.length) return;
+            setModels(toModelOptions(cards));
+            const best = cards.find(c => c.available);
+            if (best) setModelId(best.model);
         }).catch(() => {});
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const syncBoard = useCallback((next: BoardType) => {
+        const added: { pos: number; player: GomokuPlayer }[] = [];
+        for (let i = 0; i < next.length; i++) {
+            if (next[i] && !boardRef.current[i]) added.push({ pos: i, player: next[i] as GomokuPlayer });
+        }
+        boardRef.current = next;
+        setBoard(next);
+        if (added.length) setMoves(prev => [...prev, ...added]);
+    }, []);
+
     const reset = useCallback(() => {
+        boardRef.current = [...EMPTY];
         setBoard([...EMPTY]);
+        setMoves([]);
         setCurrentTurn('black');
         setWinner(undefined);
         setWinningLine(null);
@@ -44,11 +61,9 @@ export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRo
     const handleGameMessage = useCallback((msg: GomokuMessage) => {
         if (msg.type === 'move') {
             const pos = msg.row * BOARD_SIZE + msg.col;
-            setBoard((prev) => {
-                const next = [...prev] as BoardType;
-                next[pos] = msg.player;
-                return next;
-            });
+            const next = [...boardRef.current] as BoardType;
+            next[pos] = msg.player;
+            syncBoard(next);
             setLastMove(pos);
             setCurrentTurn(msg.player === 'black' ? 'white' : 'black');
         }
@@ -58,7 +73,7 @@ export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRo
             setGameEnded();
         }
         else if (msg.type === 'spectating' || msg.type === 'spectate_update') {
-            setBoard(msg.state.board as BoardType);
+            syncBoard(msg.state.board as BoardType);
             setCurrentTurn(msg.state.currentTurn);
             setWinner(msg.state.winner ?? undefined);
             setWinningLine(msg.state.winningLine);
@@ -90,7 +105,7 @@ export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRo
     if (phase === 'waiting') {
         return (
             <Stack align="center" gap="md">
-                <Select label="AI 模型" data={models} value={modelId} onChange={handleModelChange} w={220} />
+                <Select label="AI 模型" data={models} value={modelId} onChange={handleModelChange} w={260} />
                 <RoomWaiting roomId={stateRoomId || roomId || ''} onAddAi={onAddAi} />
                 <Text size="xs" c="dimmed">落子于交点 · 2s 时限 MCTS</Text>
             </Stack>
@@ -125,7 +140,7 @@ export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRo
                 <Badge color={currentTurn === 'black' ? 'dark' : 'gray'} variant="filled">{turnLabel}棋回合</Badge>
                 <Text size="lg" fw={600}>{statusText}</Text>
             </Group>
-            <Select data={models} value={modelId} onChange={handleModelChange} w={220} label="模型" disabled={isSpectating} />
+            <Select data={models} value={modelId} onChange={handleModelChange} w={260} label="模型" disabled={isSpectating} />
             {hasScores && (
                 <Text size="sm" c="dimmed">总比分：你 {myWins} 胜 · 对手 {oppWins} 胜{totalScores.draws > 0 && ` · ${totalScores.draws} 平`}</Text>
             )}
@@ -133,6 +148,11 @@ export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRo
                 ? <Text size="sm" c="dimmed">{p1Name}（黑）vs {p2Name}（白）观战中</Text>
                 : <Text size="sm" c="dimmed">你是 {roleLabel}棋 · 对手：{opponentNickname || 'AI'}</Text>}
             <GomokuBoard board={board} winningLine={winningLine} lastMove={lastMove} onCellClick={handleCellClick} disabled={boardDisabled} />
+            {moves.length > 0 && (
+                <Text size="xs" c="dimmed" style={{ fontFamily: 'monospace', maxWidth: 'min(92vw, 480px)', userSelect: 'all', lineHeight: 1.7 }}>
+                    {moves.map((m, i) => `${i + 1}.${m.player === 'black' ? '●' : '○'}${COLS[m.pos % BOARD_SIZE]}${BOARD_SIZE - Math.floor(m.pos / BOARD_SIZE)}`).join(' ')}
+                </Text>
+            )}
             <Text size="xs" c="dimmed">15×15 交点落子 · 五子连珠 · 2s MCTS · {modelId}</Text>
             {phase === 'ended' && <RematchSection hint={rematchHint} onRematch={rematch} />}
         </Stack>

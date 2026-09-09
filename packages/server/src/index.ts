@@ -11,9 +11,20 @@ import { getRoomById, getRoomList, handleAddAi, handleCreate, handleCreateAiRoom
 import { handleBattleStart } from './games/battle.js';
 import { getRelayRoomList, handleRelayCreate, handleRelayDisconnect, handleRelayJoin, handleRelayMessage } from './relay.js';
 import { gomokuEngine } from './games/gomoku-engine.js';
-import { getGame, getStats, listBatches, listGames } from './selfplay.js';
+import { getEloRatings, getGame, getStats, listBatches, listGames } from './selfplay.js';
 
 const app = new Hono();
+
+const listModelsWithElo = (): { model: string; available: boolean; elo: number | null; eloGames: number }[] => {
+    const elo = new Map(getEloRatings().map(r => [r.model, r] as const));
+    return gomokuEngine.getModelCards()
+        .map(card => ({
+            ...card,
+            elo: elo.get(card.model)?.rating ?? null,
+            eloGames: elo.get(card.model)?.games ?? 0,
+        }))
+        .sort((a, b) => (b.elo ?? Number.NEGATIVE_INFINITY) - (a.elo ?? Number.NEGATIVE_INFINITY));
+};
 
 app.use('*', cors());
 
@@ -24,7 +35,8 @@ app.get('/api/rooms/:id', (c) => {
     return c.json(room);
 });
 app.get('/api/relay-rooms', c => c.json(getRelayRoomList()));
-app.get('/api/gomoku/models', async c => c.json(await gomokuEngine.listModels()));
+app.get('/api/gomoku/models', c => c.json(listModelsWithElo()));
+app.get('/api/selfplay/elo', c => c.json(getEloRatings()));
 app.get('/api/health', c => c.json('healthy'));
 app.get('/api/selfplay/batches', c => c.json(listBatches()));
 app.get('/api/selfplay/stats', c => c.json(getStats({ batch_id: c.req.query('batch') ?? 'all' })));

@@ -82,9 +82,7 @@ stdout_lock = threading.Lock()
 def _make_mcts(model_fn):
     return MCTS(
         model_fn,
-        strategy=getattr(model_fn, "mcts_strategy", "puct"),
         c_puct=getattr(model_fn, "mcts_c_puct", 1.2),
-        c_uct=getattr(model_fn, "mcts_c_uct", 1.4142),
     )
 
 
@@ -376,8 +374,8 @@ def handle(line):
 def main():
     global current_model
     # Lizzie 启动引擎时可在命令行指定模型，例如：
-    # python3 engine.py --model heuristic-uct-v1
-    # 否则默认 heuristic-puct-v1；也可用环境变量 GOMOKU_MODEL 覆盖
+    # python3 engine.py --model nn-v3
+    # 否则默认 heuristic-v1；也可用环境变量 GOMOKU_MODEL 覆盖
     args = sys.argv[1:]
     if "--model" in args:
         name = args[args.index("--model") + 1] if args.index("--model") + 1 < len(args) else ""

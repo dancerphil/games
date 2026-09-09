@@ -31,6 +31,8 @@ const findPythonDir = () => {
     return path.resolve(process.cwd(), '../../python');
 };
 
+interface ModelSpec { builtin?: boolean; checkpoint?: string; policy?: string; value?: string }
+
 class GomokuEngine {
     private proc: ChildProcess | null = null;
     private rl: ReturnType<typeof createInterface> | null = null;
@@ -123,7 +125,7 @@ class GomokuEngine {
         }
     }
 
-    async getMove(board: (string | null)[], player: string, modelId = 'heuristic-puct-v1'): Promise<{ row: number; col: number }> {
+    async getMove(board: (string | null)[], player: string, modelId = 'heuristic-v1'): Promise<{ row: number; col: number }> {
         let release: (() => void) | undefined;
         const prev = this.serial;
         this.serial = new Promise<void>((r) => { release = r; });
@@ -162,6 +164,29 @@ class GomokuEngine {
         finally {
             release!();
         }
+    }
+
+    getModelCards(): { model: string; available: boolean }[] {
+        const pythonDir = findPythonDir();
+        const manifest = JSON.parse(fs.readFileSync(
+            path.join(pythonDir, 'checkpoints', 'manifest.json'), 'utf-8',
+        )) as Record<string, ModelSpec>;
+        const cache = new Map<string, boolean>();
+        const availableOf = (name: string, seen: Set<string>): boolean => {
+            const cached = cache.get(name);
+            if (cached !== undefined) return cached;
+            if (seen.has(name)) { throw new Error(`cyclic manifest ref: ${name}`); }
+            seen.add(name);
+            const spec = manifest[name];
+            const ok = spec.builtin
+                ? true
+                : spec.checkpoint
+                    ? fs.existsSync(path.join(pythonDir, 'checkpoints', spec.checkpoint))
+                    : availableOf(spec.policy!, seen) && availableOf(spec.value!, seen);
+            cache.set(name, ok);
+            return ok;
+        };
+        return Object.keys(manifest).map(model => ({ model, available: availableOf(model, new Set()) }));
     }
 }
 
