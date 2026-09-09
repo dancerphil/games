@@ -47,7 +47,7 @@ const fetchJson = async (p: { url: string }) => (await fetch(`${apiBase}${p.url}
 
 export const SelfplayPage = () => {
     const [batches, setBatches] = useState<{ batch_id: string; games: number }[]>([]);
-    const [batch, setBatch] = useState('default');
+    const [batch, setBatch] = useState('all');
     const [models, setModels] = useState<ModelStat[]>([]);
     const [matrix, setMatrix] = useState<MatrixCell[]>([]);
     const [totalGames, setTotalGames] = useState(0);
@@ -108,6 +108,8 @@ export const SelfplayPage = () => {
         return detail.moves[i] ?? null;
     })();
 
+    const detailWinner = detail ? winnerModel(detail) : null;
+
     const modelNames = models.map(m => m.model);
     const matrixModels = [...new Set([...matrix.map(m => m.black_model), ...matrix.map(m => m.white_model)])].sort();
     const cellOf = (black: string, white: string) => matrix.find(m => m.black_model === black && m.white_model === white);
@@ -123,8 +125,8 @@ export const SelfplayPage = () => {
                 <Select
                     label="批次"
                     data={[
-                        { value: 'default', label: 'default' },
-                        ...batches.filter(b => b.batch_id !== 'default').map(b => ({ value: b.batch_id, label: `${b.batch_id} (${b.games})` })),
+                        { value: 'all', label: '全部' },
+                        ...batches.filter(b => b.batch_id !== 'all').map(b => ({ value: b.batch_id, label: `${b.batch_id} (${b.games})` })),
                     ]}
                     value={batch}
                     onChange={v => v && setBatch(v)}
@@ -178,7 +180,7 @@ export const SelfplayPage = () => {
                             {matrixModels.map(b => (
                                 <Table.Tr key={b}>
                                     <Table.Td><Text fw={600} size="xs">{b}</Text></Table.Td>
-                                    {matrixModels.map(w => {
+                                    {matrixModels.map((w) => {
                                         const c = cellOf(b, w);
                                         return (
                                             <Table.Td key={w}>
@@ -207,7 +209,7 @@ export const SelfplayPage = () => {
             </Group>
 
             <Stack gap="xs">
-                {games.map(g => {
+                {games.map((g) => {
                     const w = winnerModel(g);
                     return (
                         <Card
@@ -246,10 +248,7 @@ export const SelfplayPage = () => {
                 <Stack align="center" gap="xs">
                     <Text size="sm" fw={600}>
                         #{detail.id} {detail.black_model}（黑） vs {detail.white_model}（白）·{' '}
-                        {(() => {
-                            const w = winnerModel(detail);
-                            return w === null ? '平局' : `${w}胜`;
-                        })()}
+                        {detailWinner === null ? '平局' : `${detailWinner}胜`}
                     </Text>
                     <GomokuBoard board={board} winningLine={null} lastMove={lastMove} onCellClick={() => {}} disabled />
                     <Group gap="xs">

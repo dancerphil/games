@@ -113,11 +113,12 @@ class GomokuEngine {
     async setTimeLimit(ms: number) {
         let release: (() => void) | undefined;
         const prev = this.serial;
-        this.serial = new Promise<void>(r => { release = r; });
+        this.serial = new Promise<void>((r) => { release = r; });
         await prev;
         try {
             await this.command(`set_time_limit ${ms}`);
-        } finally {
+        }
+        finally {
             release!();
         }
     }

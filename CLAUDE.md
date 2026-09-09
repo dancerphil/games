@@ -1,6 +1,3 @@
-- 布局时考虑手机端的显示
-- 组件文件用类型前缀（ButtonAdd 而非 AddButton）
-- 定义函数时尽量使用一个参数，合理情形下可以使用两个
-- 在需要查看文档时访问：
-  - Mantine: https://mantine.dev/llms.txt
-  - Region: https://raw.githubusercontent.com/regionjs/region/refs/heads/main/docs/Document-zh_CN.md
+- python 端时使用全局默认 python 命令
+- web 端需要考虑手机侧
+- godot 端使用 low poly 风格

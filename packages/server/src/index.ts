@@ -27,11 +27,11 @@ app.get('/api/relay-rooms', c => c.json(getRelayRoomList()));
 app.get('/api/gomoku/models', async c => c.json(await gomokuEngine.listModels()));
 app.get('/api/health', c => c.json('healthy'));
 app.get('/api/selfplay/batches', c => c.json(listBatches()));
-app.get('/api/selfplay/stats', c => c.json(getStats({ batch_id: c.req.query('batch') ?? 'default' })));
+app.get('/api/selfplay/stats', c => c.json(getStats({ batch_id: c.req.query('batch') ?? 'all' })));
 app.get('/api/selfplay/games', (c) => {
     const q = c.req.query();
     return c.json(listGames({
-        batch_id: q['batch'] ?? 'default',
+        batch_id: q['batch'] ?? 'all',
         black_model: q['black'] || undefined,
         white_model: q['white'] || undefined,
         winner_model: q['winner'] || undefined,

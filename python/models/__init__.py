@@ -41,6 +41,8 @@ REGISTRY = {
     "nn-uct-v1": _bind(_fixed_nn("1.pth"), "uct"),
     "nn-puct-v2": _bind(_fixed_nn("2.pth"), "puct"),
     "nn-uct-v2": _bind(_fixed_nn("2.pth"), "uct"),
+    "nn-puct-v3": _bind(_fixed_nn("3.pth"), "puct"),
+    "nn-uct-v3": _bind(_fixed_nn("3.pth"), "uct"),
 }
 
 DEFAULT_MODEL = "heuristic-puct-v1"

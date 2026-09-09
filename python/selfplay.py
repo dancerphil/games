@@ -8,8 +8,15 @@
 
 日志自动追加到 ~/.games/selfplay-<batch-id>.log，无需 shell 重定向。
 
-断点续跑：同一 --batch-id 已落库的对局会自动跳过，可直接重跑同一命令。
-查看可用模型：python python/selfplay.py --list-models
+ 断点续跑：同一 --batch-id 已落库的对局会自动跳过，可直接重跑同一命令。
+ 查看可用模型：python python/selfplay.py --list-models
+
+ ELO：每局落库时同步更新 elo_ratings 表（初始 1500，K=32，平局各 0.5），
+ 与 batch 无关——后续任何 batch 的对战都会继续更新同一份 ELO。
+ 初始定级赛（8 模型两两 5 黑 5 白共 360 局）：
+     python python/selfplay.py --games-per-pair 10 --time-limit-ms 5000 --workers 4 --batch-id elo-seed
+ 查看当前 ELO：python python/selfplay.py --show-elo
+ 按 id 重放全部对局重建 ELO（修复用）：python python/selfplay.py --recalc-elo
 """
 import argparse
 import concurrent.futures
@@ -25,6 +32,9 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 BOARD_SIZE = 15
 DEFAULT_DB = os.path.expanduser("~/.games/selfplay.sqlite")
+
+ELO_INIT = 1500.0
+ELO_K = 32.0
 
 
 class Tee:
@@ -70,8 +80,90 @@ def ensure_schema(db_path):
         con.execute("ALTER TABLE games ADD COLUMN policies TEXT")
     con.execute("CREATE INDEX IF NOT EXISTS idx_games_batch ON games(batch_id)")
     con.execute("CREATE INDEX IF NOT EXISTS idx_games_models ON games(black_model, white_model)")
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS elo_ratings (
+            model TEXT PRIMARY KEY,
+            rating REAL NOT NULL,
+            games INTEGER NOT NULL DEFAULT 0,
+            wins INTEGER NOT NULL DEFAULT 0,
+            losses INTEGER NOT NULL DEFAULT 0,
+            draws INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )"""
+    )
     con.commit()
     return con
+
+
+def expected_score(ra, rb):
+    """ELO 期望得分：ra 对 rb 的胜率期望。"""
+    return 1.0 / (1.0 + 10.0 ** ((rb - ra) / 400.0))
+
+
+def get_ratings(con):
+    cur = con.execute(
+        "SELECT model, rating, games, wins, losses, draws FROM elo_ratings ORDER BY rating DESC")
+    return [
+        {"model": r[0], "rating": r[1], "games": r[2],
+         "wins": r[3], "losses": r[4], "draws": r[5]}
+        for r in cur.fetchall()
+    ]
+
+
+def print_ratings(con):
+    rows = get_ratings(con)
+    if not rows:
+        print("[elo] no ratings yet")
+        return
+    print(f"{'model':<20}{'elo':>8}  W-D-L (games)")
+    for r in rows:
+        print(f"{r['model']:<20}{r['rating']:>8.0f}  "
+              f"{r['wins']}-{r['draws']}-{r['losses']} ({r['games']})")
+
+
+def apply_elo(con, black_model, white_model, winner):
+    """按一局结果更新双方 ELO，不 commit，由调用方统一提交。
+
+    自战（同模型）时先后两次更新净变化恰为 0，只累计场次胜负。
+    """
+    for m in (black_model, white_model):
+        con.execute("INSERT OR IGNORE INTO elo_ratings (model, rating) VALUES (?, ?)",
+                    (m, ELO_INIT))
+    if winner == "draw":
+        sb, sw = 0.5, 0.5
+        rb, rw = "draw", "draw"
+    elif winner == "black":
+        sb, sw = 1.0, 0.0
+        rb, rw = "win", "loss"
+    else:
+        sb, sw = 0.0, 1.0
+        rb, rw = "loss", "win"
+    # 顺序更新：后一方读到前一方的最新分；自战时净变化恰为 0
+    _move_elo(con, black_model, white_model, sb, rb)
+    _move_elo(con, white_model, black_model, sw, rw)
+
+
+def _move_elo(con, model, opp_model, actual, result):
+    rating = con.execute("SELECT rating FROM elo_ratings WHERE model = ?",
+                         (model,)).fetchone()[0]
+    opp = con.execute("SELECT rating FROM elo_ratings WHERE model = ?",
+                      (opp_model,)).fetchone()[0]
+    new_rating = rating + ELO_K * (actual - expected_score(rating, opp))
+    col = {"win": "wins", "loss": "losses", "draw": "draws"}[result]
+    con.execute(f"UPDATE elo_ratings SET rating = ?, games = games + 1, "  # noqa: S608 - col 来自内部常量
+                f"{col} = {col} + 1, updated_at = datetime('now') WHERE model = ?",
+                (new_rating, model))
+
+
+def recalc_elo(con):
+    """按 id 顺序重放全部对局重建 ELO（修复用）。"""
+    con.execute("DELETE FROM elo_ratings")
+    games = con.execute(
+        "SELECT black_model, white_model, winner FROM games ORDER BY id").fetchall()
+    for b, w, winner in games:
+        apply_elo(con, b, w, winner)
+    con.commit()
+    print(f"[elo] recalculated from {len(games)} games")
 
 
 def existing_counts(con, batch_id):
@@ -146,16 +238,37 @@ def build_tasks(models, games_per_pair):
 def main():
     parser = argparse.ArgumentParser(description="gomoku headless selfplay")
     parser.add_argument("--models", default=",".join(
-        ["heuristic-puct-v1", "heuristic-uct-v1", "nn-puct-v1", "nn-uct-v1"]),
-        help="逗号分隔的模型名，默认 4 个全量")
+        ["heuristic-puct-v1", "heuristic-uct-v1",
+         "nn-puct-v1", "nn-uct-v1", "nn-puct-v2", "nn-uct-v2",
+         "nn-puct-v3", "nn-uct-v3"]),
+        help="逗号分隔的模型名，默认 8 个全量")
     parser.add_argument("--games-per-pair", type=int, default=100, help="每无序对局数（黑白各半）")
     parser.add_argument("--time-limit-ms", type=int, default=5000, help="每手思考毫秒数")
     parser.add_argument("--workers", type=int, default=4, help="并发进程数")
     parser.add_argument("--db", default=DEFAULT_DB, help="sqlite 路径")
-    parser.add_argument("--batch-id", default="default", help="同一 batch 可断点续跑")
+    parser.add_argument("--batch-id", required=False, default=None, help="同一 batch 可断点续跑")
     parser.add_argument("--list-models", action="store_true")
+    parser.add_argument("--show-elo", action="store_true", help="只打印当前 ELO，不开跑")
+    parser.add_argument("--recalc-elo", action="store_true", help="重放全部对局重建 ELO 后退出")
     parser.add_argument("--dry-run", action="store_true", help="只打印任务数，不开跑")
     args = parser.parse_args()
+
+    if args.show_elo:
+        con = ensure_schema(args.db)
+        print_ratings(con)
+        con.close()
+        return
+
+    if args.recalc_elo:
+        con = ensure_schema(args.db)
+        recalc_elo(con)
+        print_ratings(con)
+        con.close()
+        return
+
+    if not args.batch_id:
+        print("need --batch-id (or use --show-elo / --recalc-elo)", file=sys.stderr)
+        sys.exit(2)
 
     if args.list_models:
         print(" ".join(list_models()))
@@ -230,6 +343,7 @@ def main():
                      json.dumps(r["moves"]), r["num_moves"], args.time_limit_ms, r["duration_ms"],
                      json.dumps(r["policies"])),
                 )
+                apply_elo(con, r["black_model"], r["white_model"], r["winner"])
                 con.commit()
                 finished += 1
                 key = (r["black_model"], r["white_model"], r["winner"])
@@ -249,6 +363,9 @@ def main():
     elapsed = time.monotonic() - started_all
     print(f"[selfplay] done batch={args.batch_id} finished={finished}/{total} "
           f"elapsed={int(elapsed // 60)}m at {datetime.now().isoformat(timespec='seconds')}")
+    con = ensure_schema(args.db)
+    print_ratings(con)
+    con.close()
 
 
 if __name__ == "__main__":

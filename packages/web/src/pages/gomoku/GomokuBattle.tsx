@@ -5,14 +5,14 @@ import { GomokuBoard } from './GomokuBoard';
 
 const BOARD_SIZE = 15;
 
-type BattleMove = { row: number; col: number; player: string };
-type BattleGame = {
+interface BattleMove { row: number; col: number; player: string }
+interface BattleGame {
     gameIndex: number;
     history: BattleMove[];
     board: (string | null)[];
     winner: string | null;
     finished: boolean;
-};
+}
 
 export const GomokuBattle = () => {
     const { connected, send, setMessageHandler } = useAppStore();
@@ -45,19 +45,21 @@ export const GomokuBattle = () => {
                 setSelected(0);
                 setStep(null);
                 setRunning(true);
-            } else if (type === 'battle_game_started') {
+            }
+            else if (type === 'battle_game_started') {
                 const idx = raw['gameIndex'] as number;
-                setGames(prev => {
+                setGames((prev) => {
                     const next = [...prev];
                     next[idx] = { gameIndex: idx, history: [], board: Array(BOARD_SIZE * BOARD_SIZE).fill(null), winner: null, finished: false };
                     return next;
                 });
                 setSelected(idx);
-            } else if (type === 'battle_move') {
+            }
+            else if (type === 'battle_move') {
                 const idx = raw['gameIndex'] as number;
                 const board = raw['board'] as (string | null)[];
                 const history = raw['history'] as BattleMove[];
-                setGames(prev => {
+                setGames((prev) => {
                     const next = [...prev];
                     if (!next[idx]) next[idx] = { gameIndex: idx, history: [], board: Array(15 * 15).fill(null), winner: null, finished: false };
                     next[idx] = { ...next[idx], board, history, finished: false };
@@ -65,20 +67,23 @@ export const GomokuBattle = () => {
                 });
                 setSelected(idx);
                 setStep(null);
-            } else if (type === 'battle_game_over') {
+            }
+            else if (type === 'battle_game_over') {
                 const idx = raw['gameIndex'] as number;
                 const winner = raw['winner'] as string | null;
                 const board = raw['board'] as (string | null)[];
                 const history = raw['history'] as BattleMove[];
-                setGames(prev => {
+                setGames((prev) => {
                     const next = [...prev];
                     next[idx] = { gameIndex: idx, history, board, winner, finished: true };
                     return next;
                 });
-            } else if (type === 'battle_finished') {
+            }
+            else if (type === 'battle_finished') {
                 setResults(raw['results'] as { blackWins: number; whiteWins: number; draws: number });
                 setRunning(false);
-            } else if (type === 'battle_error') {
+            }
+            else if (type === 'battle_error') {
                 setRunning(false);
             }
         };

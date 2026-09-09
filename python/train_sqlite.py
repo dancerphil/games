@@ -3,7 +3,7 @@
 
 用法：
     uv run python python/train_sqlite.py --epochs 10
-    uv run python python/train_sqlite.py --db ~/.games/selfplay.sqlite --batch-id default --epochs 10
+    uv run python python/train_sqlite.py --db ~/.games/selfplay.sqlite --batch-id v2-train --epochs 10
 """
 import argparse
 import json
@@ -154,7 +154,7 @@ def run_training(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default=DEFAULT_DB)
-    parser.add_argument("--batch-id", default="default")
+    parser.add_argument("--batch-id", required=True)
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
