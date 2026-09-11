@@ -2,20 +2,21 @@
 """无界面自对弈批量脚本：多模型两两对比（含各自自战），结果存 sqlite 并同步更新 ELO。
 
 用法（推荐走 pnpm 脚本，参数集中在 package.json）：
-    pnpm selfplay        # --mode train：训练数据生成（老师自对弈+互弈，200 局/对）
-    pnpm rate:nn3        # --mode init-elo：新模型 vs 其他各模型各 10 局定级
+    pnpm train           # --mode train：训练数据生成（老师自对弈+互弈，200 局/对）
+    pnpm teacher         # --mode teacher：ELO 第一的模型自战 1000 局
+    pnpm init-elo        # --mode init-elo：单模型 vs 其他各模型各 10 局定级
+    pnpm update-elo      # --mode update-elo：全模型两两对战（不含自战）各 10 局
     python python/selfplay.py --show-elo        # 评级 + 可用模型
     python python/selfplay.py --recalc-elo      # 重放全部对局重建 ELO（修复用）
 
 所有对局统一协议（5s/手、8 workers、前 4 手开局采样）写同一 DB，
-每局都更新 ELO；batch-id 仅用于筛选与断点续跑（缺省按参数自动派生，
-同命令重跑即自动续跑）。并行写同一 DB 安全（WAL + 单事务），
+每局都更新 ELO；batch-id 用于筛选与断点续跑（显式指定同一 id 可续跑；
+缺省按 {mode}-{日期} 自动派生，同日重复执行依次 -2、-3…）。并行写同一 DB 安全（WAL + 单事务），
 合计 workers 别超 CPU 核数，time-limit 是墙钟，超载会拉低每手有效模拟数。
 日志统一写 ~/.games/logs/selfplay-<batch-id>.log。
 """
 import argparse
 import concurrent.futures
-import hashlib
 import itertools
 import json
 import os
@@ -99,6 +100,18 @@ def ensure_schema(db_path):
         )"""
     )
     return con
+
+
+def top_rated_model(db_path):
+    """ELO 第一的模型名（teacher 预设用）。"""
+    con = ensure_schema(db_path)
+    row = con.execute(
+        "SELECT model FROM elo_ratings ORDER BY rating DESC LIMIT 1").fetchone()
+    con.close()
+    if not row:
+        print("elo_ratings 为空，无法确定 teacher 模型", file=sys.stderr)
+        sys.exit(1)
+    return row[0]
 
 
 def expected_score(ra, rb):
@@ -259,32 +272,38 @@ def build_tasks(models, games_per_pair, no_self=False, vs=None):
 
 # 常驻工作流预设：mode 定职责，显式参数可覆盖预设值。
 # 所有对局统一协议（5s/手、开局采样 4 手）写同一 DB，每局都更新 ELO，
-# batch-id 仅用于筛选与断点续跑。
+# batch-id 仅用于筛选与断点续跑（缺省 {mode}-{日期}，同日 -2、-3…）。
 MODE_PRESETS = {
     # 训练数据生成：老师自对弈 + 互弈
     "train": {"models": ["nn3-policy-h2-value", "heuristic-v2"], "games_per_pair": 200},
     # 新模型定级：vs 其他各模型，不含自战
     "init-elo": {"no_self": True, "games_per_pair": 10},
+    # 全池更新：全部注册模型两两对战，不含自战
+    "update-elo": {"no_self": True, "games_per_pair": 10},
+    # 老师数据生成：ELO 第一的模型自战 1000 局
+    "teacher": {"games_per_pair": 1000},
 }
 LOG_DIR = os.path.expanduser("~/.games/logs")
 
 
-def derive_batch_id(args, models):
-    """按全部跑法参数派生 batch-id：同命令重跑自动续跑，改参数即新批次。"""
-    key = "|".join([
-        args.mode or "", ",".join(models), args.vs or "", str(args.games_per_pair),
-        str(args.time_limit_ms), str(args.sample_moves),
-        "noself" if args.no_self else "self",
-    ])
-    return "auto-" + hashlib.md5(key.encode()).hexdigest()[:8]
+def next_batch_id(con, mode):
+    """按天派生 batch-id：{mode}-{YYYYMMDD}，同日重复执行依次 -2、-3…"""
+    base = f"{mode or 'selfplay'}-{datetime.now().strftime('%Y%m%d')}"
+    existing = {r[0] for r in con.execute("SELECT DISTINCT batch_id FROM games")}
+    if base not in existing:
+        return base
+    n = 2
+    while f"{base}-{n}" in existing:
+        n += 1
+    return f"{base}-{n}"
 
 
 def main():
     parser = argparse.ArgumentParser(description="gomoku headless selfplay")
     parser.add_argument("--mode", default=None, choices=[*MODE_PRESETS],
-                        help="train=训练数据生成 / init-elo=新模型定级；缺省=自由全模型循环赛")
+                        help="train=训练数据生成 / teacher=ELO 第一自战 1000 局 / init-elo=单模型定级（需 --vs）/ update-elo=全模型两两对战；缺省=含自战循环赛")
     parser.add_argument("--models", default=None,
-                        help="逗号分隔的模型名，默认全部已注册模型（train 预设老师名单）")
+                        help="逗号分隔的模型名，默认全部已注册模型（train/teacher 预设另定）")
     parser.add_argument("--vs", default=None,
                         help="只跑该模型 vs 其他各模型（init-elo 必填），定级用")
     parser.add_argument("--games-per-pair", type=int, default=None,
@@ -293,10 +312,11 @@ def main():
     parser.add_argument("--workers", type=int, default=8, help="并发进程数")
     parser.add_argument("--db", default=DEFAULT_DB, help="sqlite 路径")
     parser.add_argument("--batch-id", default=None,
-                        help="同一 batch 断点续跑；缺省按参数自动派生")
+                        help="同一 batch 断点续跑；缺省按 {mode}-{日期} 自动派生，同日 -2、-3…")
     parser.add_argument("--show-elo", action="store_true", help="打印当前 ELO 与可用模型，不开跑")
     parser.add_argument("--recalc-elo", action="store_true", help="重放全部对局重建 ELO 后退出")
-    parser.add_argument("--no-self", action="store_true", help="只跑不同模型两两对战，不含自战")
+    parser.add_argument("--no-self", action="store_true", default=None,
+                        help="只跑不同模型两两对战，不含自战")
     parser.add_argument("--sample-moves", type=int, default=4,
                         help="前 N 手按 visit 分布采样开局（统一协议 4；0=确定性）")
     args = parser.parse_args()
@@ -324,6 +344,8 @@ def main():
             setattr(args, key, value)
     if args.games_per_pair is None:
         args.games_per_pair = 10
+    if args.mode == "teacher" and args.models is None:
+        args.models = [top_rated_model(args.db)]
 
     if isinstance(args.models, list):
         models = args.models
@@ -337,20 +359,20 @@ def main():
     if unknown:
         print(f"unknown model: {unknown}, available: {sorted(available)}", file=sys.stderr)
         sys.exit(1)
-    if len(models) < 2 and not args.vs:
+    if len(models) < 2 and not args.vs and args.mode != "teacher":
         print("至少需要 2 个模型", file=sys.stderr)
         sys.exit(1)
     if args.vs and args.vs not in models:
         models = [args.vs, *models]
-    batch_id = args.batch_id or derive_batch_id(args, models)
+    con = ensure_schema(args.db)
+    batch_id = args.batch_id or next_batch_id(con, args.mode)
 
     tasks = build_tasks(models, args.games_per_pair, args.no_self, args.vs)
     for t in tasks:
         t["time_limit_ms"] = args.time_limit_ms
         t["sample_moves"] = args.sample_moves
 
-    con = ensure_schema(args.db)
-    done = existing_counts(con, args.batch_id)
+    done = existing_counts(con, batch_id)
     # 按有序 (black,white) 跳过已落库的前 N 个
     seen: dict = {}
     pending = []
@@ -401,7 +423,7 @@ def main():
                     con.execute(
                         "INSERT INTO games (batch_id, black_model, white_model, winner, moves, "
                         "num_moves, time_limit_ms, duration_ms, policies) VALUES (?,?,?,?,?,?,?,?,?)",
-                        (args.batch_id, r["black_model"], r["white_model"], r["winner"],
+                        (batch_id, r["black_model"], r["white_model"], r["winner"],
                          json.dumps(r["moves"]), r["num_moves"], args.time_limit_ms, r["duration_ms"],
                          json.dumps(r["policies"])),
                     )
@@ -427,7 +449,7 @@ def main():
         con.close()
 
     elapsed = time.monotonic() - started_all
-    print(f"[selfplay] done batch={args.batch_id} finished={finished}/{total} "
+    print(f"[selfplay] done batch={batch_id} finished={finished}/{total} "
           f"elapsed={int(elapsed // 60)}m at {datetime.now().isoformat(timespec='seconds')}")
     con = ensure_schema(args.db)
     print_ratings(con)

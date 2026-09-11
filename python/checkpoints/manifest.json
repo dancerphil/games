@@ -1,7 +1,29 @@
 {
-    "heuristic-v1": {"builtin": true},
-    "heuristic-v2": {"builtin": true},
-    "nn-v2": {"checkpoint": "2.pth"},
-    "nn-v3": {"checkpoint": "3.pth"},
-    "nn3-policy-h2-value": {"policy": "nn-v3", "value": "heuristic-v2"}
+    "heuristic-v1": {
+        "builtin": true
+    },
+    "heuristic-v2": {
+        "builtin": true
+    },
+    "nn-v2": {
+        "checkpoint": "2.pth"
+    },
+    "nn-v3": {
+        "checkpoint": "3.pth"
+    },
+    "nn-v4": {
+        "checkpoint": "4.pth"
+    },
+    "nn3-policy-h2-value": {
+        "policy": "nn-v3",
+        "value": "heuristic-v2"
+    },
+    "nn4-policy-h2-value": {
+        "policy": "nn-v4",
+        "value": "heuristic-v2"
+    },
+    "h2-policy-nn4-value": {
+        "policy": "heuristic-v2",
+        "value": "nn-v4"
+    }
 }
