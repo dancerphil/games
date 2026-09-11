@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""从 v4-train 自对弈 sqlite 训练 nn-v4：warm start nn-v3，修复 v3 的 value 短板。
+"""从 v4-train 自对弈 sqlite 训练 nn-v4：warm start 3.pth（nn-v3 权重），修复 v3 的 value 短板。
 
-v3 教训（见 train_sqlite_v3.py）：
+v3 教训：
 - value 目标只有弱棋手对局胜负 ±1，quiet 局面信号近似噪声
   （真实 quiet 局面 pred_v 与胜负 corr=-0.21），是致命短板；
 - 29.7% 样本是 tactical 步（推理时被 tactics.py 短路，网络永远见不到）；

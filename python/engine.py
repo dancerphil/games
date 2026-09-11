@@ -5,6 +5,7 @@ import sys
 # ensure project root on path (engine is spawned with cwd=python dir)
 sys.path.insert(0, os.path.dirname(__file__))
 
+import sqlite3
 import time
 import threading
 
@@ -16,8 +17,21 @@ time_limit_ms = 2000
 from models import REGISTRY, DEFAULT_MODEL
 from mcts import get_best_move, Node, MCTS
 
+
+def _top_elo_model():
+    """selfplay 主库 ELO 第一的已注册模型；无库/无数据时回落 DEFAULT_MODEL。"""
+    db = os.path.expanduser("~/.games/selfplay.sqlite")
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        rows = con.execute("SELECT model FROM elo_ratings ORDER BY rating DESC").fetchall()
+        con.close()
+    except sqlite3.Error:
+        return DEFAULT_MODEL
+    return next((name for (name,) in rows if name in REGISTRY), DEFAULT_MODEL)
+
+
 board = [None] * (BOARD_SIZE * BOARD_SIZE)
-current_model = DEFAULT_MODEL
+current_model = _top_elo_model()
 
 
 def gtp_to_pos(vertex):
@@ -374,8 +388,8 @@ def handle(line):
 def main():
     global current_model
     # Lizzie 启动引擎时可在命令行指定模型，例如：
-    # python3 engine.py --model nn-v3
-    # 否则默认 heuristic-v1；也可用环境变量 GOMOKU_MODEL 覆盖
+    # python3 engine.py --model nn-v4
+    # 否则默认 selfplay 主库 ELO 第一；也可用环境变量 GOMOKU_MODEL 覆盖
     args = sys.argv[1:]
     if "--model" in args:
         name = args[args.index("--model") + 1] if args.index("--model") + 1 < len(args) else ""

@@ -2,7 +2,7 @@
 """无界面自对弈批量脚本：多模型两两对比（含各自自战），结果存 sqlite 并同步更新 ELO。
 
 用法（推荐走 pnpm 脚本，参数集中在 package.json）：
-    pnpm train           # --mode train：训练数据生成（老师自对弈+互弈，200 局/对）
+    pnpm train           # --mode train：nn-v4 vs nn4-policy-h2-value 头对头 200 局
     pnpm teacher         # --mode teacher：ELO 第一的模型自战 1000 局
     pnpm init-elo        # --mode init-elo：单模型 vs 其他各模型各 10 局定级
     pnpm update-elo      # --mode update-elo：全模型两两对战（不含自战）各 10 局
@@ -274,8 +274,8 @@ def build_tasks(models, games_per_pair, no_self=False, vs=None):
 # 所有对局统一协议（5s/手、开局采样 4 手）写同一 DB，每局都更新 ELO，
 # batch-id 仅用于筛选与断点续跑（缺省 {mode}-{日期}，同日 -2、-3…）。
 MODE_PRESETS = {
-    # 训练数据生成：老师自对弈 + 互弈
-    "train": {"models": ["nn3-policy-h2-value", "heuristic-v2"], "games_per_pair": 200},
+    # train：nn4-policy-h2v80 vs nn4-policy-h2-value 头对头 200 局（不含自战）
+    "train": {"models": ["nn4-policy-h2v80", "nn4-policy-h2-value"], "games_per_pair": 200, "no_self": True},
     # 新模型定级：vs 其他各模型，不含自战
     "init-elo": {"no_self": True, "games_per_pair": 10},
     # 全池更新：全部注册模型两两对战，不含自战
@@ -301,7 +301,7 @@ def next_batch_id(con, mode):
 def main():
     parser = argparse.ArgumentParser(description="gomoku headless selfplay")
     parser.add_argument("--mode", default=None, choices=[*MODE_PRESETS],
-                        help="train=训练数据生成 / teacher=ELO 第一自战 1000 局 / init-elo=单模型定级（需 --vs）/ update-elo=全模型两两对战；缺省=含自战循环赛")
+                        help="train=nn-v4 vs nn4-policy-h2-value 200 局 / teacher=ELO 第一自战 1000 局 / init-elo=单模型定级（需 --vs）/ update-elo=全模型两两对战；缺省=含自战循环赛")
     parser.add_argument("--models", default=None,
                         help="逗号分隔的模型名，默认全部已注册模型（train/teacher 预设另定）")
     parser.add_argument("--vs", default=None,

@@ -1,11 +1,11 @@
 from mcts import get_best_move, idx
-from models.heuristic import evaluate_board
+from models.heuristic_v2 import heuristic_v2_model
 
 def test_block(desc, stones, player, expected):
     board = [None] * 225
     for r, c in stones:
         board[idx(r, c)] = "black"
-    pos = get_best_move(board, player, evaluate_board, time_limit_ms=2000)
+    pos = get_best_move(board, player, heuristic_v2_model, time_limit_ms=2000)
     rc = (pos // 15, pos % 15)
     assert rc in expected, f"{desc}: got {rc} expected {expected}"
 

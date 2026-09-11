@@ -2,8 +2,6 @@
 
 from mcts import get_best_move, idx
 from models import REGISTRY
-from models.heuristic import evaluate_board as evaluate_board_v1
-from models import heuristic_v1  # noqa: F401  (frozen module must exist)
 from models.heuristic_v2 import (
     RACE_DEFEND,
     RACE_FOUR,
@@ -218,15 +216,10 @@ def test_engine_blocks_live_three_race():
     assert m in (idx(6, 4), idx(10, 8)), f"got {(m // 15, m % 15)}"
 
 
-def test_v1_compat_and_registry():
-    import models.heuristic_v1 as v1mod
-    from models.heuristic import evaluate_board as compat
-
-    assert compat is v1mod.evaluate_board
-    assert "heuristic-v1" in REGISTRY and "heuristic-v2" in REGISTRY
+def test_registry():
+    assert "heuristic-v2" in REGISTRY
     b = [None] * 225
     b[idx(7, 7)] = "black"
-    assert evaluate_board_v1(b, "black") > 0
     assert evaluate_board_v2(b, "black") > 0
 
 
@@ -246,5 +239,5 @@ if __name__ == "__main__":
     test_policy_blocks_half_four()
     test_empty_board_center()
     test_engine_blocks_live_three_race()
-    test_v1_compat_and_registry()
+    test_registry()
     print("all heuristic-v2 tests PASS")

@@ -125,7 +125,7 @@ class GomokuEngine {
         }
     }
 
-    async getMove(board: (string | null)[], player: string, modelId = 'heuristic-v1'): Promise<{ row: number; col: number }> {
+    async getMove(board: (string | null)[], player: string, modelId = 'heuristic-v2'): Promise<{ row: number; col: number }> {
         let release: (() => void) | undefined;
         const prev = this.serial;
         this.serial = new Promise<void>((r) => { release = r; });

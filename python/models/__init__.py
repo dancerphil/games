@@ -1,4 +1,4 @@
-from .heuristic import heuristic_model, heuristic_v2_model
+from .heuristic_v2 import heuristic_v2_model
 from .nn_model import nn_model_fn
 import json
 import os
@@ -10,7 +10,6 @@ CHECKPOINT_DIR = os.path.abspath(
 MANIFEST = os.path.join(CHECKPOINT_DIR, "manifest.json")
 
 _BUILTINS = {
-    "heuristic-v1": heuristic_model,
     "heuristic-v2": heuristic_v2_model,
 }
 
@@ -22,13 +21,21 @@ def _bind(eval_fn):
     return fn
 
 
-def _hybrid(value_fn, policy_fn):
-    """组合模型：value 取自 value，policy 取自 policy（均为 manifest 模型名）。"""
+def _blend(policy_fn, value_spec):
+    """组合模型：policy 取自 policy_fn；value = 各模型 value 的加权和。
+
+    value_spec 为模型名，或 {模型名: 权重}（按权重和归一）。
+    """
+    if isinstance(value_spec, str):
+        value_fns = [(_resolve(value_spec), 1.0)]
+    else:
+        total = sum(value_spec.values())
+        value_fns = [(_resolve(name), weight / total) for name, weight in value_spec.items()]
 
     def fn(board, player):
-        v, _ = value_fn(board, player)
-        _, p = policy_fn(board, player)
-        return v, p
+        value = sum(weight * f(board, player)[0] for f, weight in value_fns)
+        _, policy = policy_fn(board, player)
+        return value, policy
 
     return fn
 
@@ -42,8 +49,12 @@ def _load_manifest():
             continue
         if spec.keys() == {"checkpoint"}:
             continue
-        if spec.keys() == {"policy", "value"} and all(r in data for r in spec.values()):
-            continue
+        if spec.keys() == {"policy", "value"}:
+            value = spec["value"]
+            refs = [spec["policy"]]
+            refs += list(value) if isinstance(value, dict) else [value]
+            if all(r in data for r in refs):
+                continue
         raise ValueError(f"bad manifest entry {name}: {spec}")
     return data
 
@@ -61,7 +72,7 @@ def _resolve(name):
     _resolving.add(name)
     spec = _MANIFEST[name]
     if "policy" in spec:
-        fn = _bind(_hybrid(_resolve(spec["value"]), _resolve(spec["policy"])))
+        fn = _bind(_blend(_resolve(spec["policy"]), spec["value"]))
     elif "builtin" in spec:
         fn = _bind(_BUILTINS[name])
     else:
@@ -74,4 +85,4 @@ def _resolve(name):
 for _name in _MANIFEST:
     _resolve(_name)
 
-DEFAULT_MODEL = "heuristic-v1"
+DEFAULT_MODEL = "nn-v4"

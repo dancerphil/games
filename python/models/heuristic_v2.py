@@ -1,8 +1,7 @@
 """heuristic-v2: run-based evaluator with race-aware value and value-delta policy.
 
-Differences vs v1 (frozen in heuristic_v1.py):
 1. Run counting (no double-count): contiguous stones form one maximal run
-   scored exactly once per line (v1 counted open-four twice via overlap).
+   scored exactly once per line.
 2. True-open test via two-cell rooms (off-board counts as blocked): a run
    of 3 is a live three iff some extension yields an OPEN four, i.e.
    rooms (l>=2 and r>=1) or (l>=1 and r>=2). Thus edge runs (N0N1N2),
@@ -37,6 +36,8 @@ stay in tactics.py short-circuit; this module shapes MCTS value/policy.
 import math
 
 import numpy as np
+
+from mcts import get_candidates
 
 BOARD_SIZE = 15
 
@@ -285,40 +286,6 @@ def evaluate_board_v2(board, player):
                              _central(board, player), player)
 
 
-def _get_candidates_for_policy(board):
-    """All empty cells within distance 2 of any stone (no density cut)."""
-    def idx(r, c):
-        return r * BOARD_SIZE + c
-
-    occupied = [i for i, v in enumerate(board) if v is not None]
-    if not occupied:
-        return [idx(7, 7)]
-    if len(occupied) == 1:
-        r = occupied[0] // BOARD_SIZE
-        c = occupied[0] % BOARD_SIZE
-        cand = []
-        for dr in (-1, 0, 1):
-            for dc in (-1, 0, 1):
-                if dr == 0 and dc == 0:
-                    continue
-                nr, nc = r + dr, c + dc
-                if 0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE and board[idx(nr, nc)] is None:
-                    cand.append(idx(nr, nc))
-        return cand
-    s = set()
-    for pos in occupied:
-        r = pos // BOARD_SIZE
-        c = pos % BOARD_SIZE
-        for dr in range(-2, 3):
-            for dc in range(-2, 3):
-                nr, nc = r + dr, c + dc
-                if 0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE:
-                    p = nr * BOARD_SIZE + nc
-                    if board[p] is None:
-                        s.add(p)
-    return sorted(s)
-
-
 def heuristic_v2_model(board, player):
     """Value-delta policy over ALL distance-2 candidates (no truncation).
 
@@ -331,7 +298,7 @@ def heuristic_v2_model(board, player):
     central0 = _central(board, player)
     V_self = _value_from_state(my0, op0, mf4, mh4, mt3, of4, oh4, ot3, central0, player)
     policy = np.zeros(BOARD_SIZE * BOARD_SIZE, dtype=np.float32)
-    cands = _get_candidates_for_policy(board)
+    cands = get_candidates(board)
     if not cands:
         return float(V_self), policy
     gains = []
