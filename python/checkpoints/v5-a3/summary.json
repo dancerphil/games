@@ -1,0 +1,6 @@
+{
+  "best_epoch": 91,
+  "best_val_loss": 2.320971778133316,
+  "updates": 39400,
+  "checkpoint": "/Users/dancerphil/github/games/python/checkpoints/v5-a3/best.pth"
+}

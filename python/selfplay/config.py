@@ -22,7 +22,7 @@ CONFIGS = {
         "no_self": True,
     },
     "update-elo": {
-        "models": ["nn4-policy-h2v80"],  # None=全部模型；列表=重点模型
+        "models": ["nn-v5-a3"],  # None=全部模型；列表=重点模型
         "games_per_pair": 10,
         "no_self": True,
     },

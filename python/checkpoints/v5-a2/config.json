@@ -1,0 +1,44 @@
+{
+  "db": "/Users/dancerphil/.games/selfplay.sqlite",
+  "batch_id": null,
+  "warm_start": "/Users/dancerphil/github/games/python/checkpoints/4.pth",
+  "output": "python/checkpoints/v5-a2",
+  "split_file": "/Users/dancerphil/github/games/python/checkpoints/v5-split.json",
+  "alpha": 0.25,
+  "tactical_weight": 0.0,
+  "epochs": 100,
+  "patience": 12,
+  "batch": 128,
+  "lr": 0.0001,
+  "wd": 0.0001,
+  "seed": 0,
+  "device": "auto",
+  "evaluate_test": false,
+  "evaluate_only": null,
+  "device_used": "mps",
+  "torch_version": "2.14.0",
+  "architecture": {
+    "in_channels": 3,
+    "hidden_channels": 32,
+    "num_blocks": 4,
+    "value_dim": 64
+  },
+  "data": {
+    "batches": {
+      "teacher-20260911": 2000
+    },
+    "games": 2000,
+    "groups": 1432,
+    "quiet_after_grouping": 42468,
+    "tactical_after_grouping": 19896
+  },
+  "data_fingerprint": "510e357eae325ccf16b8753733d3da2c4638a361e190bad5f747c4efffea6823",
+  "warm_start_sha256": "a090430a07dc93dfb918eeb686f22bf1f0e06c33ede8272f048fbc9e0d0c5858",
+  "positions": {
+    "train": 50323,
+    "val": 6106,
+    "test": 5935
+  },
+  "train_samples": 34327,
+  "unique_train_positions_d4": 13606
+}

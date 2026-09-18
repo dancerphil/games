@@ -1,5 +1,5 @@
 from tactics import find_tactical_move, idx
-from mcts import Node, MCTS
+from mcts import Node, MCTS, get_candidates
 import numpy as np
 
 
@@ -10,8 +10,13 @@ def _board(stones):
     return board
 
 
-def test_empty_center():
-    assert find_tactical_move([None] * 225, "black") == idx(7, 7)
+def test_empty_board_uses_model():
+    board = [None] * 225
+    assert find_tactical_move(board, "black") is None
+    assert get_candidates(board) == list(range(225))
+    root = Node(board, "black")
+    MCTS(_uniform).expand(root)
+    assert len(root.children) == 225
 
 
 def test_self_five():
@@ -108,7 +113,7 @@ def test_expand_untouched_when_quiet():
 
 
 if __name__ == "__main__":
-    test_empty_center()
+    test_empty_board_uses_model()
     test_self_five()
     test_block_four_variants()
     test_single_side_blockable()

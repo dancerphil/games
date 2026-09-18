@@ -31,7 +31,12 @@ const findPythonDir = () => {
     return path.resolve(process.cwd(), '../../python');
 };
 
-interface ModelSpec { builtin?: boolean; checkpoint?: string; policy?: string; value?: string }
+interface ModelSpec {
+    builtin?: boolean;
+    checkpoint?: string;
+    policy?: string;
+    value?: string | Record<string, number>;
+}
 
 class GomokuEngine {
     private proc: ChildProcess | null = null;
@@ -178,11 +183,15 @@ class GomokuEngine {
             if (seen.has(name)) { throw new Error(`cyclic manifest ref: ${name}`); }
             seen.add(name);
             const spec = manifest[name];
+            if (!spec) { throw new Error(`unknown manifest ref: ${name}`); }
+            const refs = spec.policy !== undefined && spec.value !== undefined
+                ? [spec.policy, ...(typeof spec.value === 'string' ? [spec.value] : Object.keys(spec.value))]
+                : null;
             const ok = spec.builtin
                 ? true
                 : spec.checkpoint
                     ? fs.existsSync(path.join(pythonDir, 'checkpoints', spec.checkpoint))
-                    : availableOf(spec.policy!, seen) && availableOf(spec.value!, seen);
+                    : refs !== null && refs.every(ref => availableOf(ref, seen));
             cache.set(name, ok);
             return ok;
         };

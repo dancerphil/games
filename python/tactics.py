@@ -1,13 +1,12 @@
 """All-model shared early-return layer for gomoku.
 
 Order:
-1. empty board -> center
-2. self immediate five -> play it
-3. opp must-block (any 4-threat: 4 / 31 / 22 covered via simulation) -> block it
-4. forced-win deep search (my moves <= 3): m1 forces o1 forces ... ends in
+1. self immediate five -> play it
+2. opp must-block (any 4-threat: 4 / 31 / 22 covered via simulation) -> block it
+3. forced-win deep search (my moves <= 3): m1 forces o1 forces ... ends in
    proven win (direct five or double threat). Option A: abort branch as soon
    as opp's block creates a counter-threat I must answer.
-5. otherwise -> None (fall back to model/MCTS)
+4. otherwise -> None (fall back to model/MCTS)
 
 Tie-break among multiple winning moves: random.choice.
 """
@@ -86,8 +85,6 @@ def winning_points(board, player):
 
 def _candidates(board):
     occupied = [i for i, v in enumerate(board) if v is not None]
-    if not occupied:
-        return [idx(7, 7)]
     s = set()
     for pos in occupied:
         r, c = divmod(pos, BOARD_SIZE)
@@ -213,21 +210,18 @@ def find_forcing_win(board, player):
 
 def find_tactical_move(board, player):
     """Shared early-return for all models. None -> fall back to model."""
-    # 1. opening: empty board -> center
-    if all(v is None for v in board):
-        return idx(7, 7)
-    # 2. self immediate five
+    # 1. self immediate five
     wins = winning_points(board, player)
     if wins:
         return random.choice(wins)
-    # 3. opp must-block (covers 4 / 31 / 22 via simulation)
+    # 2. opp must-block (covers 4 / 31 / 22 via simulation)
     opp = other(player)
     blocks = winning_points(board, opp)
     if blocks:
         return random.choice(blocks)
-    # 4. forced win within 3 of my moves
+    # 3. forced win within 3 of my moves
     forcing = find_forcing_win(board, player)
     if forcing is not None:
         return forcing
-    # 5. fall back to model
+    # 4. fall back to model
     return None
