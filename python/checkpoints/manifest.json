@@ -6,6 +6,9 @@
     "heuristic-v2": {
         "builtin": true
     },
+    "heuristic-v3": {
+        "builtin": true
+    },
     "nn-v4": {
         "checkpoint": "4.pth"
     },

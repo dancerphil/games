@@ -17,12 +17,12 @@ TIME_LIMIT_MS = 5000
 
 CONFIGS = {
     "train": {
-        "models": ["nn4-policy-h2v80", "nn4-policy-h2-value"],
-        "games_per_pair": 200,
+        "models": ["heuristic-v3", "heuristic-v2"],
+        "games_per_pair": 100,
         "no_self": True,
     },
     "update-elo": {
-        "models": ["nn-v5-a3"],  # None=全部模型；列表=重点模型
+        "models": ["heuristic-v3"],  # None=全部模型；列表=重点模型
         "games_per_pair": 10,
         "no_self": True,
     },

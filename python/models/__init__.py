@@ -1,4 +1,5 @@
 from .heuristic_v2 import heuristic_v2_model
+from .heuristic_v3 import heuristic_v3_model
 from .nn_model import nn_model_fn
 import json
 import os
@@ -11,6 +12,7 @@ MANIFEST = os.path.join(CHECKPOINT_DIR, "manifest.json")
 
 _BUILTINS = {
     "heuristic-v2": heuristic_v2_model,
+    "heuristic-v3": heuristic_v3_model,
 }
 
 
