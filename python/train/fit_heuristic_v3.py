@@ -10,12 +10,16 @@ tests because their ordering is not a linear feature constraint.
 import argparse
 import json
 from pathlib import Path
+import sys
 
 import numpy as np
 
+PYTHON_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PYTHON_DIR))
+
 from models.heuristic_v3 import FEATURES, V3_SCORE, board_state, line_features
 
-DEFAULT_CASES = Path(__file__).parent / "tests" / "heuristic_v3_cases.json"
+DEFAULT_CASES = PYTHON_DIR / "tests" / "heuristic_v3_cases.json"
 
 
 def case_features(kind, position):

@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from models.nn_model import board_to_tensor
-from train_sqlite_v5 import (
+from train.train_sqlite_v5 import (
     INVERSES, PERMS, PositionDataset, Sample, canonical_game, evaluate,
     load_games, losses, position_key, split_games,
 )

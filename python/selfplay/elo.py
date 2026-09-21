@@ -7,7 +7,11 @@ def expected_score(rating, opponent_rating):
 
 
 def apply_elo(con, black_model, white_model, winner):
+    if black_model == white_model:
+        return
     ensure_elo_models(con, black_model, white_model)
+    ratings = {model: con.execute("SELECT rating FROM elo_ratings WHERE model = ?", (model,)).fetchone()[0]
+               for model in (black_model, white_model)}
     if winner == "draw":
         black_score, white_score = 0.5, 0.5
         black_result, white_result = "draw", "draw"
@@ -17,15 +21,11 @@ def apply_elo(con, black_model, white_model, winner):
     else:
         black_score, white_score = 0.0, 1.0
         black_result, white_result = "loss", "win"
-    _move_elo(con, black_model, white_model, black_score, black_result)
-    _move_elo(con, white_model, black_model, white_score, white_result)
+    _move_elo(con, black_model, ratings[black_model], ratings[white_model], black_score, black_result)
+    _move_elo(con, white_model, ratings[white_model], ratings[black_model], white_score, white_result)
 
 
-def _move_elo(con, model, opponent, actual, result):
-    rating = con.execute("SELECT rating FROM elo_ratings WHERE model = ?", (model,)).fetchone()[0]
-    opponent_rating = con.execute(
-        "SELECT rating FROM elo_ratings WHERE model = ?", (opponent,)
-    ).fetchone()[0]
+def _move_elo(con, model, rating, opponent_rating, actual, result):
     new_rating = rating + ELO_K * (actual - expected_score(rating, opponent_rating))
     column = {"win": "wins", "loss": "losses", "draw": "draws"}[result]
     con.execute(

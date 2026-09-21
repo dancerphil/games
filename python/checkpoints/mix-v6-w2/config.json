@@ -1,0 +1,218 @@
+{
+  "args": {
+    "output": "/Users/dancerphil/github/games/python/checkpoints/mix-v6-w2",
+    "workers": 8,
+    "time_ms": 5000,
+    "screen_pairs": 3,
+    "tune_pairs": 5,
+    "confirm_pairs": 20,
+    "seed": 0,
+    "weights": [
+      0.25,
+      0.5,
+      0.75
+    ],
+    "c_puct": [
+      0.8,
+      1.2,
+      1.8
+    ]
+  },
+  "openings": {
+    "screen": [
+      [
+        112,
+        97,
+        96,
+        81
+      ],
+      [
+        112,
+        96,
+        83,
+        125
+      ],
+      [
+        112,
+        96,
+        83,
+        80
+      ]
+    ],
+    "tune": [
+      [
+        112,
+        96,
+        81,
+        84
+      ],
+      [
+        112,
+        96,
+        98,
+        110
+      ],
+      [
+        112,
+        96,
+        98,
+        82
+      ],
+      [
+        112,
+        97,
+        127,
+        110
+      ],
+      [
+        112,
+        96,
+        129,
+        113
+      ]
+    ],
+    "confirm": [
+      [
+        112,
+        96,
+        81,
+        95
+      ],
+      [
+        112,
+        96,
+        98,
+        95
+      ],
+      [
+        112,
+        96,
+        97,
+        143
+      ],
+      [
+        112,
+        96,
+        144,
+        84
+      ],
+      [
+        112,
+        97,
+        125,
+        113
+      ],
+      [
+        112,
+        97,
+        81,
+        144
+      ],
+      [
+        112,
+        96,
+        114,
+        126
+      ],
+      [
+        112,
+        96,
+        97,
+        142
+      ],
+      [
+        112,
+        96,
+        81,
+        99
+      ],
+      [
+        112,
+        97,
+        82,
+        140
+      ],
+      [
+        112,
+        97,
+        80,
+        127
+      ],
+      [
+        112,
+        96,
+        129,
+        80
+      ],
+      [
+        112,
+        96,
+        99,
+        129
+      ],
+      [
+        112,
+        96,
+        83,
+        129
+      ],
+      [
+        112,
+        97,
+        111,
+        99
+      ],
+      [
+        112,
+        96,
+        84,
+        111
+      ],
+      [
+        112,
+        96,
+        83,
+        141
+      ],
+      [
+        112,
+        97,
+        111,
+        129
+      ],
+      [
+        112,
+        96,
+        98,
+        84
+      ],
+      [
+        112,
+        96,
+        128,
+        80
+      ]
+    ]
+  },
+  "fingerprints": {
+    "checkpoints/manifest.json": "537fcfb70560154b1608366763dd1eb9367417a61509bdfda01fbd911c4c5c5a",
+    "mcts.py": "2b5edb6a615996ee8ea957d297f5620d889db74948668527bbe36eb9d07cd827",
+    "tactics.py": "3da43541cb9150a647e5ad4fa6b822f9ffa8ceaf0565ccd51d3ab7d0f086df32",
+    "selfplay/game.py": "60f007c59f136413a14d8ac37f6ea91f5fbd61e5ff4065e9423a5c8360cd2008",
+    "train/mix.py": "2661ab6230ad2522df2d524095836d9c63e03308994fdc1f418f6a5ba34a4d16",
+    "models/__init__.py": "f532a2479e57420f969887b7214462cd2e4a26c6aec574519abbcd8431266421",
+    "models/heuristic_v2.py": "b3de1647ad47fa405cda4d5e81e328d65233c9545991cd1a4b70d4610d78653e",
+    "models/heuristic_v3.py": "e424610aae63c1892f8c195344e02120130c0fae9dd8857128a59c6e3a436a48",
+    "models/nn_model.py": "4226f58f5f10ed536c076bb7fd13142d01653fdda7c90777ee2d0a0f198f47cf",
+    "models/value_cnn.py": "a52216fa7c13a336bcfa9bb65e6afbaa5aa1e706caa267a2fa28ee27226e4698",
+    "checkpoints/4.pth": "a090430a07dc93dfb918eeb686f22bf1f0e06c33ede8272f048fbc9e0d0c5858",
+    "checkpoints/v5-a1/best.pth": "109ca0d45bae70b0b8cadb0f4a74a15afd57571be0197b16ea61fd634579b613",
+    "checkpoints/v5-a2/best.pth": "e9f0cf81c7c6a37e4bb6ad91d7bc3734f0d2f2f01e7da59846e92ae14f5272b8",
+    "checkpoints/v5-a3/best.pth": "39f034d34a0cc41d194f45111078bb5858a543cbcb13174f51881a65d8c179f2"
+  },
+  "panel": [
+    "nn4-policy-h2v80",
+    "nn-v5-a2",
+    "heuristic-v3"
+  ]
+}

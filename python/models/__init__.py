@@ -16,10 +16,10 @@ _BUILTINS = {
 }
 
 
-def _bind(eval_fn):
+def _bind(eval_fn, c_puct=C_PUCT):
     def fn(board, player):
         return eval_fn(board, player)
-    fn.mcts_c_puct = C_PUCT
+    fn.mcts_c_puct = c_puct
     return fn
 
 
@@ -32,14 +32,21 @@ def _blend(policy_fn, value_spec):
         value_fns = [(_resolve(value_spec), 1.0)]
     else:
         total = sum(value_spec.values())
-        value_fns = [(_resolve(name), weight / total) for name, weight in value_spec.items()]
+        value_fns = [(_resolve(name), weight / total) for name, weight in value_spec.items() if weight != 0]
 
     def fn(board, player):
-        value = sum(weight * f(board, player)[0] for f, weight in value_fns)
-        _, policy = policy_fn(board, player)
+        fns = dict.fromkeys([policy_fn, *[f for f, _ in value_fns]])
+        outputs = {f: f(board, player) for f in fns}
+        value = sum(weight * outputs[f][0] for f, weight in value_fns)
+        _, policy = outputs[policy_fn]
         return value, policy
 
     return fn
+
+
+def make_model(spec):
+    """构造可直接写入 manifest 的融合视图；mix 无需注册临时模型。"""
+    return _bind(_blend(_resolve(spec["policy"]), spec["value"]), spec.get("c_puct", C_PUCT))
 
 
 def _load_manifest():
@@ -47,6 +54,10 @@ def _load_manifest():
     with open(MANIFEST) as f:
         data = json.load(f)
     for name, spec in data.items():
+        spec = dict(spec)
+        c_puct = spec.pop("c_puct", C_PUCT)
+        if not isinstance(c_puct, (int, float)) or not 0 < c_puct < float("inf"):
+            raise ValueError(f"bad c_puct for {name}: {c_puct}")
         if spec.keys() == {"builtin"} and spec["builtin"] is True:
             continue
         if spec.keys() == {"checkpoint"}:
@@ -74,11 +85,11 @@ def _resolve(name):
     _resolving.add(name)
     spec = _MANIFEST[name]
     if "policy" in spec:
-        fn = _bind(_blend(_resolve(spec["policy"]), spec["value"]))
+        fn = make_model(spec)
     elif "builtin" in spec:
-        fn = _bind(_BUILTINS[name])
+        fn = _bind(_BUILTINS[name], spec.get("c_puct", C_PUCT))
     else:
-        fn = _bind(nn_model_fn(os.path.join(CHECKPOINT_DIR, spec["checkpoint"])))
+        fn = _bind(nn_model_fn(os.path.join(CHECKPOINT_DIR, spec["checkpoint"])), spec.get("c_puct", C_PUCT))
     _resolving.discard(name)
     REGISTRY[name] = fn
     return fn

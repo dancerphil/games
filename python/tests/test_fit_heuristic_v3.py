@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from fit_heuristic_v3 import fit, load_rows, violations
+from train.fit_heuristic_v3 import fit, load_rows, violations
 from models.heuristic_v3 import FEATURES, V3_SCORE, line_features, score_features
 
 

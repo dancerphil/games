@@ -1,0 +1,283 @@
+{
+  "specs": {
+    "mix-1fb2f12aaf37": {
+      "policy": "nn-v5-a3",
+      "value": "nn-v5-a3",
+      "c_puct": 1.2
+    },
+    "mix-da6420cf8550": {
+      "policy": "nn-v5-a3",
+      "value": {
+        "nn-v5-a3": 0.5,
+        "heuristic-v3": 0.5
+      },
+      "c_puct": 0.8
+    },
+    "mix-6a78d9948628": {
+      "policy": "nn-v5-a3",
+      "value": {
+        "nn-v5-a3": 0.5,
+        "heuristic-v3": 0.5
+      },
+      "c_puct": 1.2
+    },
+    "mix-8247e624dc25": {
+      "policy": "nn-v5-a3",
+      "value": {
+        "nn-v5-a3": 0.5,
+        "heuristic-v3": 0.5
+      },
+      "c_puct": 1.8
+    },
+    "mix-4b74ab6c55d1": {
+      "policy": "nn-v5-a3",
+      "value": {
+        "nn-v5-a3": 0.25,
+        "heuristic-v2": 0.75
+      },
+      "c_puct": 0.8
+    },
+    "mix-9c45e35d1535": {
+      "policy": "nn-v5-a3",
+      "value": {
+        "nn-v5-a3": 0.25,
+        "heuristic-v2": 0.75
+      },
+      "c_puct": 1.2
+    },
+    "mix-aafeb1d41a7f": {
+      "policy": "nn-v5-a3",
+      "value": {
+        "nn-v5-a3": 0.25,
+        "heuristic-v2": 0.75
+      },
+      "c_puct": 1.8
+    },
+    "mix-93bc3725ad0b": {
+      "policy": "nn-v5-a2",
+      "value": {
+        "nn-v5-a3": 0.5,
+        "heuristic-v3": 0.5
+      },
+      "c_puct": 1.2
+    }
+  },
+  "results": {
+    "mix-6a78d9948628": {
+      "games": 30,
+      "score": 0.6666666666666666,
+      "opening_bootstrap_95": [
+        0.5333333333333333,
+        0.8
+      ],
+      "opponents_wdl": {
+        "nn4-policy-h2v80": [
+          8,
+          0,
+          2
+        ],
+        "heuristic-v3": [
+          8,
+          0,
+          2
+        ],
+        "nn-v5-a2": [
+          4,
+          0,
+          6
+        ]
+      },
+      "mean_visits_per_quiet_move": 878.2219251336899,
+      "mean_game_seconds": 128.85516666666666
+    },
+    "mix-4b74ab6c55d1": {
+      "games": 30,
+      "score": 0.5666666666666667,
+      "opening_bootstrap_95": [
+        0.5,
+        0.6333333333333333
+      ],
+      "opponents_wdl": {
+        "nn4-policy-h2v80": [
+          9,
+          0,
+          1
+        ],
+        "nn-v5-a2": [
+          2,
+          0,
+          8
+        ],
+        "heuristic-v3": [
+          6,
+          0,
+          4
+        ]
+      },
+      "mean_visits_per_quiet_move": 1151.0208333333333,
+      "mean_game_seconds": 109.15733333333333
+    },
+    "mix-da6420cf8550": {
+      "games": 30,
+      "score": 0.6666666666666666,
+      "opening_bootstrap_95": [
+        0.4666666666666666,
+        0.8666666666666666
+      ],
+      "opponents_wdl": {
+        "nn-v5-a2": [
+          5,
+          0,
+          5
+        ],
+        "heuristic-v3": [
+          7,
+          0,
+          3
+        ],
+        "nn4-policy-h2v80": [
+          8,
+          0,
+          2
+        ]
+      },
+      "mean_visits_per_quiet_move": 925.5474006116208,
+      "mean_game_seconds": 110.34613333333333
+    },
+    "mix-93bc3725ad0b": {
+      "games": 30,
+      "score": 0.5666666666666667,
+      "opening_bootstrap_95": [
+        0.5,
+        0.6333333333333333
+      ],
+      "opponents_wdl": {
+        "nn4-policy-h2v80": [
+          8,
+          0,
+          2
+        ],
+        "heuristic-v3": [
+          5,
+          0,
+          5
+        ],
+        "nn-v5-a2": [
+          4,
+          0,
+          6
+        ]
+      },
+      "mean_visits_per_quiet_move": 1070.9686411149826,
+      "mean_game_seconds": 98.63983333333333
+    },
+    "mix-8247e624dc25": {
+      "games": 30,
+      "score": 0.5666666666666667,
+      "opening_bootstrap_95": [
+        0.5,
+        0.7
+      ],
+      "opponents_wdl": {
+        "nn-v5-a2": [
+          3,
+          0,
+          7
+        ],
+        "heuristic-v3": [
+          6,
+          0,
+          4
+        ],
+        "nn4-policy-h2v80": [
+          8,
+          0,
+          2
+        ]
+      },
+      "mean_visits_per_quiet_move": 976.3262195121952,
+      "mean_game_seconds": 108.84706666666666
+    },
+    "mix-1fb2f12aaf37": {
+      "games": 30,
+      "score": 0.43333333333333335,
+      "opening_bootstrap_95": [
+        0.26666666666666666,
+        0.5666666666666667
+      ],
+      "opponents_wdl": {
+        "nn4-policy-h2v80": [
+          4,
+          0,
+          6
+        ],
+        "nn-v5-a2": [
+          2,
+          0,
+          8
+        ],
+        "heuristic-v3": [
+          7,
+          0,
+          3
+        ]
+      },
+      "mean_visits_per_quiet_move": 1214.8431952662722,
+      "mean_game_seconds": 113.03233333333333
+    },
+    "mix-9c45e35d1535": {
+      "games": 30,
+      "score": 0.6666666666666666,
+      "opening_bootstrap_95": [
+        0.4666666666666666,
+        0.8666666666666666
+      ],
+      "opponents_wdl": {
+        "heuristic-v3": [
+          6,
+          0,
+          4
+        ],
+        "nn-v5-a2": [
+          6,
+          0,
+          4
+        ],
+        "nn4-policy-h2v80": [
+          8,
+          0,
+          2
+        ]
+      },
+      "mean_visits_per_quiet_move": 935.2363636363636,
+      "mean_game_seconds": 129.03053333333335
+    },
+    "mix-aafeb1d41a7f": {
+      "games": 30,
+      "score": 0.6666666666666666,
+      "opening_bootstrap_95": [
+        0.5666666666666667,
+        0.7666666666666667
+      ],
+      "opponents_wdl": {
+        "nn4-policy-h2v80": [
+          7,
+          0,
+          3
+        ],
+        "heuristic-v3": [
+          8,
+          0,
+          2
+        ],
+        "nn-v5-a2": [
+          5,
+          0,
+          5
+        ]
+      },
+      "mean_visits_per_quiet_move": 901.9319899244332,
+      "mean_game_seconds": 128.36816666666667
+    }
+  }
+}

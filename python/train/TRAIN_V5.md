@@ -7,13 +7,13 @@
 先运行 A1（value = 0.5 胜负 + 0.5 根 q）：
 
 ```sh
-python python/train_sqlite_v5.py --output python/checkpoints/v5-a1
+python python/train/train_sqlite_v5.py --output python/checkpoints/v5-a1
 ```
 
 再运行 A2（value = 0.25 胜负 + 0.75 根 q）：
 
 ```sh
-python python/train_sqlite_v5.py --output python/checkpoints/v5-a2 --alpha 0.25
+python python/train/train_sqlite_v5.py --output python/checkpoints/v5-a2 --alpha 0.25
 ```
 
 两次使用相同的 `4.pth`、随机种子和 `python/checkpoints/v5-split.json`。
@@ -63,7 +63,7 @@ python python/train_sqlite_v5.py --output python/checkpoints/v5-a2 --alpha 0.25
 例如选中 A2：
 
 ```sh
-python python/train_sqlite_v5.py \
+python python/train/train_sqlite_v5.py \
   --evaluate-only python/checkpoints/v5-a2/best.pth \
   --evaluate-test --alpha 0.25 \
   --output python/checkpoints/v5-a2-eval
@@ -78,7 +78,7 @@ python python/train_sqlite_v5.py \
 如果希望检验搜索树内部 tactical value 的分布缺口，可以在选定的 alpha 上做单独对照：
 
 ```sh
-python python/train_sqlite_v5.py \
+python python/train/train_sqlite_v5.py \
   --output python/checkpoints/v5-a3 --alpha 0.25 --tactical-weight 0.25
 ```
 

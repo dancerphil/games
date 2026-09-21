@@ -1,0 +1,123 @@
+{
+  "specs": {
+    "mix-1fb2f12aaf37": {
+      "policy": "nn-v5-a3",
+      "value": "nn-v5-a3",
+      "c_puct": 1.2
+    },
+    "mix-6a78d9948628": {
+      "policy": "nn-v5-a3",
+      "value": {
+        "nn-v5-a3": 0.5,
+        "heuristic-v3": 0.5
+      },
+      "c_puct": 1.2
+    },
+    "mix-9c45e35d1535": {
+      "policy": "nn-v5-a3",
+      "value": {
+        "nn-v5-a3": 0.25,
+        "heuristic-v2": 0.75
+      },
+      "c_puct": 1.2
+    }
+  },
+  "results": {
+    "mix-1fb2f12aaf37": {
+      "games": 160,
+      "score": 0.60625,
+      "opening_bootstrap_95": [
+        0.54375,
+        0.675
+      ],
+      "opponents_wdl": {
+        "nn4-policy-h2-value": [
+          27,
+          0,
+          13
+        ],
+        "heuristic-v3": [
+          24,
+          0,
+          16
+        ],
+        "nn-v5-a2": [
+          20,
+          0,
+          20
+        ],
+        "nn4-policy-h2v80": [
+          26,
+          0,
+          14
+        ]
+      },
+      "mean_visits_per_quiet_move": 1308.6052631578948,
+      "mean_game_seconds": 112.51435000000001
+    },
+    "mix-6a78d9948628": {
+      "games": 160,
+      "score": 0.690625,
+      "opening_bootstrap_95": [
+        0.621875,
+        0.753125
+      ],
+      "opponents_wdl": {
+        "nn-v5-a2": [
+          25,
+          0,
+          15
+        ],
+        "nn4-policy-h2-value": [
+          29,
+          0,
+          11
+        ],
+        "heuristic-v3": [
+          27,
+          0,
+          13
+        ],
+        "nn4-policy-h2v80": [
+          29,
+          1,
+          10
+        ]
+      },
+      "mean_visits_per_quiet_move": 886.5153889199776,
+      "mean_game_seconds": 117.44691875
+    },
+    "mix-9c45e35d1535": {
+      "games": 160,
+      "score": 0.6875,
+      "opening_bootstrap_95": [
+        0.609375,
+        0.7625
+      ],
+      "opponents_wdl": {
+        "nn-v5-a2": [
+          19,
+          0,
+          21
+        ],
+        "nn4-policy-h2v80": [
+          29,
+          2,
+          9
+        ],
+        "heuristic-v3": [
+          30,
+          0,
+          10
+        ],
+        "nn4-policy-h2-value": [
+          31,
+          0,
+          9
+        ]
+      },
+      "mean_visits_per_quiet_move": 823.2363405336722,
+      "mean_game_seconds": 143.19989375
+    }
+  }
+}

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """v4 同构蒸馏。完整棋谱 D4 分组去重，固定切分，在线增强。
 
-python python/train_sqlite_v5.py --output python/checkpoints/v5-a1
-python python/train_sqlite_v5.py --output python/checkpoints/v5-a2 --alpha 0.25
+python python/train/train_sqlite_v5.py --output python/checkpoints/v5-a1
+python python/train/train_sqlite_v5.py --output python/checkpoints/v5-a2 --alpha 0.25
 
 不自动登记候选到 manifest；测试集只在显式 --evaluate-test 时评估。
 """
@@ -15,15 +15,18 @@ import math
 from pathlib import Path
 import random
 import sqlite3
+import sys
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 
+BASE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE))
+
 from models.value_cnn import build_model_from_state_dict, get_device, infer_model_kwargs
 
-BASE = Path(__file__).resolve().parent
 SIZE = 15
 GRID = np.arange(SIZE * SIZE).reshape(SIZE, SIZE)
 # 每个排列把新坐标映射到原坐标；逆排列用于变换落子坐标。

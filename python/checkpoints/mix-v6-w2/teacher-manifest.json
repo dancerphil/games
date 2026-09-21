@@ -1,0 +1,7 @@
+{
+  "v6-teacher": {
+    "policy": "nn-v5-a3",
+    "value": "nn-v5-a3",
+    "c_puct": 1.2
+  }
+}

@@ -162,6 +162,7 @@ class MCTS:
         tactical 步分布为单点、root_q=None（未搜索）。
         root_q 为根节点 visit 加权平均 q（行棋方视角），供训练做 value 软目标。
         """
+        deadline = time.monotonic() + time_limit_ms / 1000.0
         root = Node(root_board[:], root_player)
         # same short-circuit as every other decision point
         tactical = find_tactical_move(root_board, root_player)
@@ -173,7 +174,6 @@ class MCTS:
         self.expand(root)
         if not root.children:
             return cands[0], {}, False, float(root.value)
-        deadline = time.monotonic() + time_limit_ms / 1000.0
         while time.monotonic() < deadline:
             node = root
             path = [node]

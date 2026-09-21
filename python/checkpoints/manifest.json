@@ -21,6 +21,13 @@
     "nn-v5-a3": {
         "checkpoint": "v5-a3/best.pth"
     },
+    "mix-v5-h3": {
+        "policy": "nn-v5-a3",
+        "value": {
+            "nn-v5-a3": 0.5,
+            "heuristic-v3": 0.5
+        }
+    },
     "nn4-policy-h2-value": {
         "policy": "nn-v4",
         "value": "heuristic-v2"

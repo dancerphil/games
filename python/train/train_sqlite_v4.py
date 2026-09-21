@@ -16,7 +16,7 @@ v4 对策：
 - val 增报 value corr（pred_v vs 目标），直接监控 v3 的失败模式。
 
 用法：
-    python python/train_sqlite_v4.py --batch-id v4-train-1 --epochs 80
+    python python/train/train_sqlite_v4.py --batch-id v4-train-1 --epochs 80
 """
 import argparse
 import json
@@ -26,7 +26,8 @@ import random
 import sqlite3
 import sys
 
-sys.path.insert(0, os.path.dirname(__file__))
+BASE = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, BASE)
 
 import torch
 import torch.nn.functional as F
@@ -36,7 +37,6 @@ from models.nn_model import board_to_tensor
 from models.value_cnn import build_model_from_state_dict, get_device
 
 BOARD_SIZE = 15
-BASE = os.path.dirname(__file__)
 DEFAULT_DB = os.path.expanduser("~/.games/selfplay.sqlite")
 CHECKPOINT = os.path.join(BASE, "checkpoints", "4.pth")
 CHECKPOINT_FILE = os.path.basename(CHECKPOINT)

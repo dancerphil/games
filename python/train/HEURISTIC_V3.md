@@ -92,8 +92,8 @@ python -m tests.test_heuristic_v2
 ## 参数拟合
 
 ```sh
-python fit_heuristic_v3.py
-python fit_heuristic_v3.py --weights starting_weights.json --output fitted_weights.json
+python train/fit_heuristic_v3.py
+python train/fit_heuristic_v3.py --weights starting_weights.json --output fitted_weights.json
 ```
 
 使用 NumPy 实现的 Dykstra 投影，求满足训练约束、离初始表欧氏距离最小的参数：
