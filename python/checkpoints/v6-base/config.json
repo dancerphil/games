@@ -1,0 +1,46 @@
+{
+  "db": "/Users/dancerphil/.games/selfplay.sqlite",
+  "batch_id": [
+    "teacher-20260921-2"
+  ],
+  "warm_start": "/Users/dancerphil/github/games/python/checkpoints/v5-a3/best.pth",
+  "output": "/Users/dancerphil/github/games/python/checkpoints/v6-base",
+  "split_file": "/Users/dancerphil/github/games/python/checkpoints/v6-base-split.json",
+  "updates": 30000,
+  "eval_every": 1000,
+  "batch": 128,
+  "lr": 0.0001,
+  "wd": 0.0001,
+  "alpha": 0.25,
+  "tactical_weight": 0.25,
+  "seed": 0,
+  "device": "auto",
+  "evaluate_only": null,
+  "evaluate_test": false,
+  "teacher": "mix-v5-h3",
+  "device_used": "mps",
+  "torch_version": "2.14.0",
+  "architecture": {
+    "in_channels": 3,
+    "hidden_channels": 32,
+    "num_blocks": 4,
+    "value_dim": 64
+  },
+  "data": {
+    "batches": {
+      "teacher-20260921-2": 2000
+    },
+    "games": 2000,
+    "groups": 1666,
+    "quiet_after_grouping": 51151,
+    "tactical_after_grouping": 20752
+  },
+  "data_fingerprint": "a1a4f13e53ad374c5c2f102d797e7b56e64130a372e3eca6ae7876c7326638aa",
+  "warm_start_sha256": "39f034d34a0cc41d194f45111078bb5858a543cbcb13174f51881a65d8c179f2",
+  "positions": {
+    "train": 57135,
+    "val": 7703,
+    "test": 7065
+  },
+  "unique_train_positions_d4": 25239
+}

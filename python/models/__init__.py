@@ -55,6 +55,9 @@ def _load_manifest():
         data = json.load(f)
     for name, spec in data.items():
         spec = dict(spec)
+        hidden = spec.pop("hidden", False)
+        if not isinstance(hidden, bool):
+            raise ValueError(f"bad hidden for {name}: {hidden}")
         c_puct = spec.pop("c_puct", C_PUCT)
         if not isinstance(c_puct, (int, float)) or not 0 < c_puct < float("inf"):
             raise ValueError(f"bad c_puct for {name}: {c_puct}")
@@ -73,13 +76,13 @@ def _load_manifest():
 
 
 _MANIFEST = _load_manifest()
-REGISTRY = {}
+_resolved = {}
 _resolving = set()
 
 
 def _resolve(name):
-    if name in REGISTRY:
-        return REGISTRY[name]
+    if name in _resolved:
+        return _resolved[name]
     if name in _resolving:
         raise ValueError(f"cyclic manifest ref at {name}")
     _resolving.add(name)
@@ -91,11 +94,12 @@ def _resolve(name):
     else:
         fn = _bind(nn_model_fn(os.path.join(CHECKPOINT_DIR, spec["checkpoint"])), spec.get("c_puct", C_PUCT))
     _resolving.discard(name)
-    REGISTRY[name] = fn
+    _resolved[name] = fn
     return fn
 
 
-for _name in _MANIFEST:
-    _resolve(_name)
+# 隐藏模型只作为依赖解析，不进入对战和引擎的可选列表。
+REGISTRY = {name: _resolve(name) for name, spec in _MANIFEST.items()
+            if not spec.get("hidden", False)}
 
-DEFAULT_MODEL = "nn-v4"
+DEFAULT_MODEL = "mix-v5-h3"

@@ -8,6 +8,7 @@ python python/train/train_sqlite_v5.py --output python/checkpoints/v5-a2 --alpha
 """
 import argparse
 from collections import defaultdict
+from contextlib import closing
 from dataclasses import dataclass
 import hashlib
 import json
@@ -62,7 +63,7 @@ def load_games(db_path, batch_ids):
     groups = {}
     counts = defaultdict(int)
     digest = hashlib.sha256()
-    with sqlite3.connect(Path(db_path).expanduser().resolve().as_uri() + "?mode=ro", uri=True) as con:
+    with closing(sqlite3.connect(Path(db_path).expanduser().resolve().as_uri() + "?mode=ro", uri=True)) as con:
         for batch in sorted(set(batch_ids)):
             rows = con.execute(
                 "SELECT id, black_model, white_model, winner, moves, policies "
@@ -181,13 +182,20 @@ def correlation(x, y):
     return float(np.dot(x, y) / denominator) if denominator else None
 
 
-def evaluate(model, samples, device, alpha, train_keys, batch_size):
+def mask_policy_logits(logits, boards):
+    # 使用有限最小值，使零概率标签乘 log-prob 时不会产生 0 * -inf。
+    return logits.masked_fill(~boards[:, 2].flatten(1).bool(), torch.finfo(logits.dtype).min)
+
+
+def evaluate(model, samples, device, alpha, train_keys, batch_size, legal_mask=False):
     loader = DataLoader(PositionDataset(samples), batch_size=batch_size)
     values, ces, kls, top1, top3 = [], [], [], [], []
     model.eval()
     with torch.inference_mode():
         for boards, policy, _, _, _ in loader:
             v, logits = model(boards.to(device))
+            if legal_mask:
+                logits = mask_policy_logits(logits, boards.to(device))
             log_probs = F.log_softmax(logits.cpu(), dim=1)
             ce = -(policy * log_probs).sum(1)
             entropy = -torch.special.xlogy(policy, policy).sum(1)
@@ -209,6 +217,8 @@ def evaluate(model, samples, device, alpha, train_keys, batch_size):
              "quiet_ply_0_9": quiet & (ply < 10), "quiet_ply_10_29": quiet & (ply >= 10) & (ply < 30),
              "quiet_ply_30_plus": quiet & (ply >= 30), "tactical": ~quiet,
              "tactical_unseen": ~quiet & unseen}
+    if legal_mask:
+        masks.update(quiet_first_move=quiet & (ply == 0), quiet_second_move=quiet & (ply == 1))
     result = {}
     for name, mask in masks.items():
         n = int(mask.sum())

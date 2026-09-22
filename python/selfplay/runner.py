@@ -8,7 +8,7 @@ from datetime import datetime
 from .config import (BATCH_ID, CONFIGS, DB, LOG_DIR, SAMPLE_MOVES, TIME_LIMIT_MS,
                      WORKERS)
 from .db import (ensure_schema, existing_counts, insert_game, list_models,
-                 next_batch_id, print_ratings)
+                 print_ratings, select_batch_id)
 from .elo import apply_elo
 from .game import play_one
 from .io import redirect_to_log
@@ -111,7 +111,6 @@ def main():
         raise SystemExit(1)
 
     con = ensure_schema(DB)
-    batch_id = BATCH_ID or next_batch_id(con, mode)
     tasks = build_tasks(
         models,
         mode_config["games_per_pair"],
@@ -120,6 +119,7 @@ def main():
     )
     for task in tasks:
         task.update(time_limit_ms=TIME_LIMIT_MS, sample_moves=SAMPLE_MOVES)
+    batch_id = BATCH_ID or select_batch_id(con, mode, tasks, TIME_LIMIT_MS, SAMPLE_MOVES)
     pending, skipped = _pending_tasks(con, tasks, batch_id)
     pair_count = len({task["pair"] for task in tasks})
     print(f"[selfplay] batch={batch_id} models={models}")

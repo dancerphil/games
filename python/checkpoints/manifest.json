@@ -1,16 +1,14 @@
 {
-    "h2-policy-nn4-value": {
-        "policy": "heuristic-v2",
-        "value": "nn-v4"
-    },
     "heuristic-v2": {
-        "builtin": true
+        "builtin": true,
+        "hidden": true
+    },
+    "nn-v4": {
+        "checkpoint": "4.pth",
+        "hidden": true
     },
     "heuristic-v3": {
         "builtin": true
-    },
-    "nn-v4": {
-        "checkpoint": "4.pth"
     },
     "nn-v5-a1": {
         "checkpoint": "v5-a1/best.pth"
@@ -20,13 +18,6 @@
     },
     "nn-v5-a3": {
         "checkpoint": "v5-a3/best.pth"
-    },
-    "mix-v5-h3": {
-        "policy": "nn-v5-a3",
-        "value": {
-            "nn-v5-a3": 0.5,
-            "heuristic-v3": 0.5
-        }
     },
     "nn4-policy-h2-value": {
         "policy": "nn-v4",
@@ -38,5 +29,15 @@
             "heuristic-v2": 0.8,
             "nn-v4": 0.2
         }
+    },
+    "mix-v5-h3": {
+        "policy": "nn-v5-a3",
+        "value": {
+            "nn-v5-a3": 0.5,
+            "heuristic-v3": 0.5
+        }
+    },
+    "nn-v6-base": {
+        "checkpoint": "v6-base/best.pth"
     }
 }

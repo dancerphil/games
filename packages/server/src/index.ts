@@ -75,6 +75,15 @@ const server = serve({ fetch: app.fetch, port }, (info) => {
 
 const wss = new WebSocketServer({ noServer: true });
 
+// Keep idle games connected through proxies while players or AI are thinking.
+// Browsers automatically reply to WebSocket ping frames, including on mobile.
+const heartbeat = setInterval(() => {
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) { client.ping(); }
+    });
+}, 20_000);
+wss.on('close', () => { clearInterval(heartbeat); });
+
 (server as Server).on('upgrade', (req, socket, head) => {
     if (req.url?.startsWith('/ws')) {
         wss.handleUpgrade(req, socket, head, (ws) => {

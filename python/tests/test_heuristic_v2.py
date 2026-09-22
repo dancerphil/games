@@ -217,7 +217,7 @@ def test_engine_blocks_live_three_race():
 
 
 def test_registry():
-    assert "heuristic-v2" in REGISTRY
+    assert "heuristic-v2" not in REGISTRY
     b = [None] * 225
     b[idx(7, 7)] = "black"
     assert evaluate_board_v2(b, "black") > 0

@@ -1,3 +1,5 @@
+from collections import Counter
+import json
 import os
 import sqlite3
 import time
@@ -46,6 +48,13 @@ def ensure_schema(db_path):
             updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         )"""
     )
+    con.execute(
+        """CREATE TABLE IF NOT EXISTS selfplay_batches (
+            batch_id TEXT PRIMARY KEY,
+            config TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )"""
+    )
     return con
 
 
@@ -90,7 +99,9 @@ def next_batch_id(con, mode):
     from datetime import datetime
 
     base = f"{mode or 'selfplay'}-{datetime.now().strftime('%Y%m%d')}"
-    existing = {row[0] for row in con.execute("SELECT DISTINCT batch_id FROM games")}
+    existing = {row[0] for row in con.execute(
+        "SELECT batch_id FROM games UNION SELECT batch_id FROM selfplay_batches"
+    )}
     if base not in existing:
         return base
     n = 2
@@ -99,9 +110,49 @@ def next_batch_id(con, mode):
     return f"{base}-{n}"
 
 
-def insert_game(con, batch_id, result, time_limit_ms):
-    import json
+def select_batch_id(con, mode, tasks, time_limit_ms, sample_moves):
+    """续跑最近的匹配批次；旧批次仅能按已保存的配对和时限匹配。"""
+    target = Counter((task["black_model"], task["white_model"]) for task in tasks)
+    config = json.dumps({
+        "mode": mode,
+        "pairs": [(*pair, count) for pair, count in sorted(target.items())],
+        "time_limit_ms": time_limit_ms,
+        "sample_moves": sample_moves,
+    }, sort_keys=True)
+    candidates = con.execute(
+        "SELECT batch_id, MAX(created_at) FROM ("
+        "SELECT batch_id, created_at FROM selfplay_batches UNION ALL "
+        "SELECT batch_id, created_at FROM games) "
+        "WHERE batch_id LIKE ? GROUP BY batch_id ORDER BY MAX(created_at) DESC, batch_id DESC",
+        (f"{mode}-%",),
+    ).fetchall()
+    for batch_id, _ in candidates:
+        saved = con.execute(
+            "SELECT config FROM selfplay_batches WHERE batch_id = ?", (batch_id,)
+        ).fetchone()
+        if saved is not None and saved[0] != config:
+            continue
+        rows = con.execute(
+            "SELECT black_model, white_model, time_limit_ms, COUNT(*) FROM games "
+            "WHERE batch_id = ? GROUP BY black_model, white_model, time_limit_ms",
+            (batch_id,),
+        ).fetchall()
+        if any(limit != time_limit_ms or (black, white) not in target
+               or count > target[(black, white)] for black, white, limit, count in rows):
+            continue
+        done = {(black, white): count for black, white, _, count in rows}
+        if not any(done.get(pair, 0) < count for pair, count in target.items()):
+            continue
+        con.execute("INSERT OR IGNORE INTO selfplay_batches (batch_id, config) VALUES (?, ?)",
+                    (batch_id, config))
+        return batch_id
+    batch_id = next_batch_id(con, mode)
+    con.execute("INSERT INTO selfplay_batches (batch_id, config) VALUES (?, ?)",
+                (batch_id, config))
+    return batch_id
 
+
+def insert_game(con, batch_id, result, time_limit_ms):
     con.execute(
         "INSERT INTO games (batch_id, black_model, white_model, winner, moves, "
         "num_moves, time_limit_ms, duration_ms, policies) VALUES (?,?,?,?,?,?,?,?,?)",
