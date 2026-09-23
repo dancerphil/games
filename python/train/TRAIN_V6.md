@@ -1,9 +1,11 @@
 # v6-base 同构蒸馏
 
+`pnpm train` 现已切换到 [v6-full](TRAIN_V6_FULL.md)，本页的 base 入口为 `pnpm train:base`。
+
 项目根目录执行：
 
 ```sh
-pnpm train
+pnpm train:base
 ```
 
 使用全局 `python`，自动选择 CUDA / MPS / CPU。默认读取
@@ -28,7 +30,7 @@ pnpm train
 例如修改预算或设备：
 
 ```sh
-pnpm train --updates 40000 --device mps --output python/checkpoints/v6-base-40k
+pnpm train:base --updates 40000 --device mps --output python/checkpoints/v6-base-40k
 ```
 
 更换数据或种子时使用新的 `--split-file`。`--batch-id` 可以重复传入，但所有批次必须来自同一个老师自对弈。
@@ -55,7 +57,7 @@ pnpm train --updates 40000 --device mps --output python/checkpoints/v6-base-40k
 选定候选后执行：
 
 ```sh
-pnpm train --evaluate-only python/checkpoints/v6-base/best.pth \
+pnpm train:base --evaluate-only python/checkpoints/v6-base/best.pth \
   --evaluate-test --output python/checkpoints/v6-base-eval
 ```
 

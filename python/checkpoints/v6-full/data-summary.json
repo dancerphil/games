@@ -1,0 +1,53 @@
+{
+  "positions": {
+    "selfplay": {
+      "train": 57135,
+      "val": 7703,
+      "test": 7065
+    },
+    "cross": {
+      "train": 5777,
+      "val": 594,
+      "test": 674
+    },
+    "replay": {
+      "train": 41817,
+      "val": 6106,
+      "test": 5935
+    }
+  },
+  "cross_train_buckets": {
+    "mix-v5-h3:0": 514,
+    "h2-policy-nn4-value:0": 58,
+    "h2-policy-nn4-value:1": 54,
+    "mix-v5-h3:1": 507,
+    "heuristic-v2:0": 70,
+    "heuristic-v2:1": 73,
+    "nn-v5-a1:0": 481,
+    "heuristic-v3:0": 322,
+    "nn-v5-a1:1": 463,
+    "heuristic-v3:1": 349,
+    "nn4-policy-h2v80:0": 438,
+    "nn4-policy-h2v80:1": 460,
+    "nn-v4:0": 55,
+    "nn-v5-a2:0": 312,
+    "nn-v5-a2:1": 295,
+    "nn-v5-a3:0": 342,
+    "nn-v5-a3:1": 324,
+    "nn4-policy-h2-value:0": 301,
+    "nn4-policy-h2-value:1": 313,
+    "nn-v4:1": 46
+  },
+  "unique_train_positions_d4": 53238,
+  "cross_plan": {
+    "games": 910,
+    "game_groups": 886,
+    "recorded_labels": 2046,
+    "reanalyze_positions": 5000,
+    "skipped": {
+      "known_position": 8779,
+      "known_game": 3
+    },
+    "cross_split_positions_removed": 1329
+  }
+}

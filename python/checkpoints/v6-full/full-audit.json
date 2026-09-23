@@ -1,0 +1,11 @@
+{
+  "positions": 5000,
+  "quiet": 4999,
+  "tactical_excluded": 1,
+  "visits_p10_median_p90": [
+    322.0,
+    528.0,
+    1773.3999999999915
+  ],
+  "mean_duration_ms": 5006.385050014435
+}

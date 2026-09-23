@@ -17,12 +17,12 @@ TIME_LIMIT_MS = 5000
 
 CONFIGS = {
     "update-elo": {
-        "models": ["nn-v6-base"],  # None=全部模型；列表=重点模型
+        "models": ["nn-v6-full"],  # None=全部模型；列表=重点模型
         "games_per_pair": 100,
         "no_self": True,
     },
     "teacher": {
-        "models": ["mix-v5-h3"],
+        "models": ["nn-v6-full"],
         "games_per_pair": 2000,
         "no_self": False,
     },

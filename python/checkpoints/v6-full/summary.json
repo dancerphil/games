@@ -1,0 +1,19 @@
+{
+  "updates": 30000,
+  "best_update": 30000,
+  "best_score": 2.4325706937136937,
+  "exposures": {
+    "selfplay": {
+      "quiet": 1900863,
+      "tactical": 769137
+    },
+    "cross": {
+      "quiet": 780000,
+      "tactical": 0
+    },
+    "replay": {
+      "quiet": 251949,
+      "tactical": 138051
+    }
+  }
+}

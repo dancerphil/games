@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v6-base：A3 热启动，现有老师自对弈蒸馏。项目根目录运行 pnpm train。"""
+"""v6-base：A3 热启动，现有老师自对弈蒸馏。项目根目录运行 pnpm train:base。"""
 import argparse
 from contextlib import closing
 from functools import partial

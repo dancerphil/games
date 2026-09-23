@@ -39,5 +39,8 @@
     },
     "nn-v6-base": {
         "checkpoint": "v6-base/best.pth"
+    },
+    "nn-v6-full": {
+        "checkpoint": "v6-full/best.pth"
     }
 }
