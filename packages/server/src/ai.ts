@@ -51,7 +51,7 @@ export const triggerAiMove = async (room: Room): Promise<void> => {
     }
     else if (game === 'gomoku') {
         const state = room.gameState as { board: (('black' | 'white') | null)[]; currentTurn: 'black' | 'white'; modelId?: string };
-        const { row, col } = await gomokuEngine.getMove(state.board as (string | null)[], state.currentTurn, (state as { modelId?: string }).modelId ?? 'heuristic-v2');
+        const { row, col } = await gomokuEngine.getMove(state.board as (string | null)[], state.currentTurn, (state as { modelId?: string }).modelId ?? 'nn-v6-full');
         aiData = { row, col };
     }
     if (aiData) {

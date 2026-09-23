@@ -388,7 +388,7 @@ def handle(line):
 def main():
     global current_model
     # Lizzie 启动引擎时可在命令行指定模型，例如：
-    # python3 engine.py --model nn-v4
+    # python3 engine.py --model nn-v6-full
     # 否则默认 selfplay 主库 ELO 第一；也可用环境变量 GOMOKU_MODEL 覆盖
     args = sys.argv[1:]
     if "--model" in args:

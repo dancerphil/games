@@ -19,8 +19,8 @@ interface BattleGame {
 export const GomokuBattle = () => {
     const { connected, send, setMessageHandler } = useAppStore();
     const [models, setModels] = useState<ModelOption[]>([]);
-    const [blackModel, setBlackModel] = useState('heuristic-v2');
-    const [whiteModel, setWhiteModel] = useState('nn-v4');
+    const [blackModel, setBlackModel] = useState('nn-v6-full');
+    const [whiteModel, setWhiteModel] = useState('nn-v6-base');
     const [numGames, setNumGames] = useState<number>(1);
     const [running, setRunning] = useState(false);
     const [games, setGames] = useState<BattleGame[]>([]);

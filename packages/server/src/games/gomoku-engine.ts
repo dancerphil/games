@@ -36,6 +36,7 @@ interface ModelSpec {
     checkpoint?: string;
     policy?: string;
     value?: string | Record<string, number>;
+    hidden?: boolean;
 }
 
 class GomokuEngine {
@@ -130,7 +131,7 @@ class GomokuEngine {
         }
     }
 
-    async getMove(board: (string | null)[], player: string, modelId = 'heuristic-v2'): Promise<{ row: number; col: number }> {
+    async getMove(board: (string | null)[], player: string, modelId = 'nn-v6-full'): Promise<{ row: number; col: number }> {
         let release: (() => void) | undefined;
         const prev = this.serial;
         this.serial = new Promise<void>((r) => { release = r; });
@@ -195,7 +196,9 @@ class GomokuEngine {
             cache.set(name, ok);
             return ok;
         };
-        return Object.keys(manifest).map(model => ({ model, available: availableOf(model, new Set()) }));
+        return Object.entries(manifest)
+            .filter(([, spec]) => !spec.hidden)
+            .map(([model]) => ({ model, available: availableOf(model, new Set()) }));
     }
 }
 

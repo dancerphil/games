@@ -1,12 +1,4 @@
 {
-    "heuristic-v2": {
-        "builtin": true,
-        "hidden": true
-    },
-    "nn-v4": {
-        "checkpoint": "4.pth",
-        "hidden": true
-    },
     "heuristic-v3": {
         "builtin": true
     },
@@ -18,17 +10,6 @@
     },
     "nn-v5-a3": {
         "checkpoint": "v5-a3/best.pth"
-    },
-    "nn4-policy-h2-value": {
-        "policy": "nn-v4",
-        "value": "heuristic-v2"
-    },
-    "nn4-policy-h2v80": {
-        "policy": "nn-v4",
-        "value": {
-            "heuristic-v2": 0.8,
-            "nn-v4": 0.2
-        }
     },
     "mix-v5-h3": {
         "policy": "nn-v5-a3",

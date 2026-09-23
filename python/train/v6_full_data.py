@@ -20,7 +20,7 @@ else:
 TEACHER = "mix-v5-h3"
 BASE_MODEL = "nn-v6-base"
 CROSS_BATCHES = ["update-elo-20260921", "update-elo-20260922", "update-elo-20260922-2"]
-PRIORITY = {"nn-v5-a1", "nn4-policy-h2v80", TEACHER}
+PRIORITY = {"nn-v5-a1", TEACHER}
 PARTS = ("train", "val", "test")
 
 

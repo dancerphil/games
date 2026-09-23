@@ -15,25 +15,16 @@ from python.train.mix import candidate, name_of, openings, opening_key, run_stag
 
 
 class MixTests(unittest.TestCase):
-    def test_hidden_dependencies_remain_usable_by_public_blends(self):
+    def test_removed_models_are_not_registered(self):
         from python.selfplay.db import list_models
 
         available = list_models()
-        for name in ("heuristic-v2", "nn-v4"):
+        removed = ("heuristic-v2", "nn-v4", "nn4-policy-h2-value", "nn4-policy-h2v80",
+                   "h2-policy-nn4-value")
+        for name in removed:
             self.assertNotIn(name, models.REGISTRY)
             self.assertNotIn(name, available)
-        board = [None] * 225
-        board[112] = "black"
-        neural_value, neural_policy = models._resolve("nn-v4")(board, "white")
-        heuristic_value, _ = models._resolve("heuristic-v2")(board, "white")
-        for name, expected in (
-            ("nn4-policy-h2-value", heuristic_value),
-            ("nn4-policy-h2v80", 0.8 * heuristic_value + 0.2 * neural_value),
-        ):
-            self.assertIn(name, available)
-            value, policy = models.REGISTRY[name](board, "white")
-            self.assertAlmostEqual(value, expected)
-            np.testing.assert_allclose(policy, neural_policy)
+            self.assertNotIn(name, models._MANIFEST)
 
     def test_blend_evaluates_shared_model_once(self):
         calls = []

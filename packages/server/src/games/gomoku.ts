@@ -24,7 +24,7 @@ export const initState = (p: { modelId?: string } = {}): GomokuState => ({
     winner: null,
     winningLine: null,
     lastMove: null,
-    modelId: p.modelId ?? 'heuristic-v2',
+    modelId: p.modelId ?? 'nn-v6-full',
 });
 
 const idx = (r: number, c: number) => r * BOARD_SIZE + c;

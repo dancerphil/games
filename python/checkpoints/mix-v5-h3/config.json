@@ -1,6 +1,6 @@
 {
   "args": {
-    "output": "/Users/dancerphil/github/games/python/checkpoints/mix-v6-w2",
+    "output": "/Users/dancerphil/github/games/python/checkpoints/mix-v5-h3",
     "workers": 8,
     "time_ms": 5000,
     "screen_pairs": 3,

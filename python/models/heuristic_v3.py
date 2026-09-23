@@ -14,7 +14,7 @@ import math
 import numpy as np
 
 from mcts import get_candidates
-from .heuristic_v2 import _LINES, _POS_LINES
+from .line_geometry import _LINES, _POS_LINES
 
 V3_SCORE = {
     "FOUR_OPEN": 1000.0, "FOUR_HALF": 100.0,

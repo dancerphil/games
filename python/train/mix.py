@@ -20,7 +20,7 @@ from python.selfplay.game import play_one
 from python.models import MANIFEST, REGISTRY
 
 BASELINE = "nn-v5-a3"
-PANEL = ["nn4-policy-h2v80", "nn-v5-a2", "heuristic-v3"]
+PANEL = ["nn-v6-full", "nn-v5-a2", "heuristic-v3"]
 
 
 def save(path, data):
@@ -184,7 +184,7 @@ def main():
     if any(not 0 < w <= 1 for w in args.weights) or any(not math.isfinite(c) or c <= 0 for c in args.c_puct):
         parser.error("weights must be in (0,1]; c-puct must be finite and positive")
     args.output = args.output.expanduser().resolve()
-    for name in [BASELINE, *PANEL, "heuristic-v2", "nn4-policy-h2-value"]:
+    for name in [BASELINE, *PANEL, "heuristic-v3"]:
         if name not in REGISTRY:
             parser.error(f"missing model: {name}")
     rng, used = random.Random(args.seed), set()
@@ -209,8 +209,8 @@ def main():
                 raise ValueError(f"duplicate result: {key}")
             records[key] = row["result"]
     baseline = candidate()
-    screen = [baseline] + [candidate(heuristic=h, weight=w)
-                           for h in ("heuristic-v2", "heuristic-v3") for w in args.weights]
+    screen = [baseline] + [candidate(heuristic="heuristic-v3", weight=w)
+                           for w in args.weights]
     ranked, _ = run_stage("screen", screen, PANEL, prefixes["screen"], args, records)
     finalists = ranked[:2]
     tune = [baseline]
@@ -221,7 +221,7 @@ def main():
     ranked, _ = run_stage("tune", tune, PANEL, prefixes["tune"], args, records)
     finalists = [spec for spec in ranked if spec != baseline][:2]
     ranked, confirmation = run_stage("confirm", [baseline, *finalists],
-                                    [*PANEL, "nn4-policy-h2-value"], prefixes["confirm"], args, records)
+                                    PANEL, prefixes["confirm"], args, records)
     _, duels = run_stage("duel", finalists, [BASELINE], prefixes["confirm"], args, records)
     best = ranked[0]
     # 确认阶段不再调参数；全对手表现与直接交手共同决定是否建议替代 A3。

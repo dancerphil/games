@@ -27,7 +27,7 @@ export const Gomoku = ({ initialAction, roomId, isCreator, isSpectate, initialRo
     const [winningLine, setWinningLine] = useState<number[] | null>(null);
     const [lastMove, setLastMove] = useState<number | null>(null);
     const [models, setModels] = useState<ModelOption[]>([]);
-    const [modelId, setModelId] = useState('heuristic-v2');
+    const [modelId, setModelId] = useState('nn-v6-full');
 
     useEffect(() => {
         fetchModelCards().then((cards) => {

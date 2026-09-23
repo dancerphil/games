@@ -14,12 +14,11 @@ pnpm mix
 
 ## 默认阶段
 
-1. **screen**：纯 A3，以及 A3 policy + H2/H3 value 混合，启发式权重 0.25/0.5/0.75。
-   对旧融合老师、A2、heuristic-v3，每个对手 3 个开局换先（6 局）。共 126 局。
+1. **screen**：纯 A3，以及 A3 policy + H3 value 混合，启发式权重 0.25/0.5/0.75。
+   对 v6-full、A2、heuristic-v3，每个对手 3 个开局换先（6 局）。共 72 局。
 2. **tune**：screen 前两名分别尝试 c_puct=0.8/1.2/1.8；额外比较最佳 value 搭配 A2 policy。
    加纯 A3 基线，每对手 5 个开局换先。至多 240 局。
-3. **confirm**：两个非基线入围者和纯 A3，在新的 20 个开局上对四个对手复核。
-   第四个对手是 nn4-policy-h2-value。通常共 480 局。
+3. **confirm**：两个非基线入围者和纯 A3，在新的 20 个开局上对三个对手复核。通常共 360 局。
 4. **duel**：两个入围者直接对 A3，在 confirm 的相同开局上换先。通常共 80 局。
 
 前两阶段是低成本淘汰，不能用其少量对局证明强弱。确认阶段后不再调参。
@@ -42,7 +41,7 @@ panel 综合得分超过 A3，并且直接交手的开局簇 bootstrap 95% 区�
 例如允许更多并发（会增加共享设备竞争）：
 
 ```sh
-pnpm mix --workers 2 --output python/checkpoints/mix-v6-w2
+pnpm mix --workers 2 --output python/checkpoints/mix-v5-h3
 ```
 
 扩大确认局数或修改候选网格：
